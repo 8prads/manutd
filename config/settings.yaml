@@ -1,1 +1,146 @@
+# ============================================================
+# Pengaturan bot berita Man Utd
+# Ubah nilai di sini, lalu commit. Tidak ada rahasia di file ini.
+# Rahasia (token, kunci API) hanya disimpan di GitHub Secrets.
+# ============================================================
 
+# Berita yang lebih tua dari ini diabaikan (jam)
+max_item_age_hours: 6
+
+filter:
+  # Berita dari feed umum hanya lolos jika memuat salah satu kata ini
+  keywords:
+    - manchester united
+    - man united
+    - man utd
+    - mufc
+    - red devils
+    - old trafford
+    - carrington
+    - ratcliffe
+    - ineos
+    - glazer
+  # Berita yang memuat kata ini selalu dibuang
+  exclude:
+    - fantasy premier league
+    - fpl
+    - betting
+    - odds
+    - quiz
+    - horoscope
+    - lottery
+
+dedupe:
+  strong_threshold: 0.5      # kemiripan >= ini = berita yang sama
+  mid_threshold: 0.35        # kemiripan menengah, dianggap sama jika minimal 2 nama/entitas sama
+  weak_threshold: 0.25       # kemiripan lemah, dianggap sama jika 1 entitas dan jenis kejadian sama
+  retention_hours: 48        # berita diingat selama ini
+  merge_window_minutes: 90   # sumber baru ditambahkan ke pesan lama selama jendela ini
+  max_edits: 5
+
+cooldown:
+  minutes: 15
+  bypass_on_escalation: true   # RUMOR -> RESMI/BREAKING boleh langsung lewat
+  bypass_on_new_facts: true    # angka/biaya/skor baru pada topik transfer, cedera, resmi
+
+rate:
+  max_per_hour: 10
+  unlimited_labels: ["BREAKING NEWS", "RESMI"]
+
+trend:
+  small_sources_need_support: true   # blog/agregator butuh dukungan sumber lain
+  hold_minutes: 45                   # tunggu dukungan selama ini, jika tidak ada berita dibuang
+  expire_minutes: 120                # berita yang tertahan (cooldown/batas) dibuang setelah ini
+  reddit_min_score: 250
+  gdelt_min_domains: 3
+
+summary:
+  long_article_chars: 2500     # artikel lebih panjang dari ini = ringkasan lebih panjang
+  max_article_chars: 6000
+  retry_cycles: 2              # coba ulang terjemahan sebelum memakai ringkasan Inggris
+
+llm:
+  gemini_models: ["gemini-3.8-flash", "gemini-3.5-flash-lite"]
+  groq_models: ["llama-3.3-70b-versatile", "openai/gpt-oss-120b"]
+
+health:
+  alert_after_failures: 12     # peringatan jika sumber gagal berturut-turut (12 siklus = sekitar 1 jam)
+
+people:
+  trusted_journalists:
+    - Fabrizio Romano
+    - David Ornstein
+    - Laurie Whitwell
+    - Simon Stone
+    - Samuel Luckhurst
+    - Paul Hirst
+    - Mark Ogden
+    - Rob Dawson
+    - Adam Crafton
+    - Jonathan Northcroft
+  pundits:
+    - Gary Neville
+    - Roy Keane
+    - Jamie Carragher
+    - Graeme Souness
+    - Rio Ferdinand
+    - Paul Scholes
+    - Micah Richards
+    - Alan Shearer
+    - Ian Wright
+    - Jamie Redknapp
+    - Peter Schmeichel
+    - Wayne Rooney
+    - Paul Merson
+    - Chris Sutton
+    - Danny Murphy
+    - Gabby Agbonlahor
+
+# Media yang dianggap sumber utama (tier 1) bila muncul lewat Google News/Reddit
+tier1_names:
+  - BBC Sport
+  - BBC
+  - The Guardian
+  - Sky Sports
+  - ESPN
+  - Manchester Evening News
+  - The Athletic
+  - Reuters
+  - The Telegraph
+  - The Independent
+  - The Times
+  - Football365
+  - ManUtd.com
+  - Manchester United
+
+# Nama klub dan tokoh yang selalu dianggap entitas (membantu mengenali topik yang sama)
+entities_seed:
+  - Arsenal
+  - Chelsea
+  - Liverpool
+  - Tottenham
+  - Newcastle
+  - Brighton
+  - Brentford
+  - Fulham
+  - Everton
+  - Wolves
+  - Forest
+  - Palace
+  - Villa
+  - Bournemouth
+  - Leeds
+  - Burnley
+  - Sunderland
+  - Barcelona
+  - Madrid
+  - Juventus
+  - Milan
+  - Inter
+  - Bayern
+  - Dortmund
+  - Napoli
+  - Atletico
+  - Sporting
+  - Benfica
+  - Ajax

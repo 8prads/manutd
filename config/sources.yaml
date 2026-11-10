@@ -1,0 +1,54 @@
+# ============================================================
+# Daftar sumber berita.
+# tier: 1 = media utama/resmi, 2 = blog/agregator, 3 = API cadangan (tertunda)
+# dedicated: true = khusus Man Utd (tidak perlu disaring kata kunci)
+# Sumber yang mati dilewati otomatis dan dilaporkan lewat Telegram.
+# Untuk menonaktifkan sumber: tambahkan enabled: false.
+# ============================================================
+sources:
+  # ---- Resmi dan media utama ----
+  - {id: manutd, name: "ManUtd.com", type: rss, url: "https://www.manutd.com/Feeds/NewsSecondRSSFeed", tier: 1, official: true, dedicated: true}
+  - {id: bbc_football, name: "BBC Sport", type: rss, url: "https://feeds.bbci.co.uk/sport/0/football/rss.xml?edition=uk", tier: 1, dedicated: false}
+  - {id: guardian_mu, name: "The Guardian", type: rss, url: "https://www.theguardian.com/football/manchester-united/rss", tier: 1, dedicated: true}
+  - {id: sky_football, name: "Sky Sports", type: rss, url: "https://www.skysports.com/rss/12040", tier: 1, dedicated: false}
+  - {id: espn_soccer, name: "ESPN", type: rss, url: "https://www.espn.com/espn/rss/soccer/news", tier: 1, dedicated: false}
+  - {id: men, name: "Manchester Evening News", type: rss, url: "https://www.manchestereveningnews.co.uk/all-about/manchester-united-fc?service=rss", tier: 1, dedicated: true}
+  - {id: f365, name: "Football365", type: rss, url: "https://www.football365.com/manchester-united/rss2", tier: 1, dedicated: true}
+
+  # ---- Blog dan situs fans ----
+  - {id: caughtoffside, name: "CaughtOffside", type: rss, url: "https://www.caughtoffside.com/tags/premier-league/manchester-united/feed/", tier: 2, dedicated: true}
+  - {id: peoples_person, name: "The Peoples Person", type: rss, url: "https://thepeoplesperson.com/feed/", tier: 2, dedicated: true}
+  - {id: old_trafford_faithful, name: "Old Trafford Faithful", type: rss, url: "https://oldtraffordfaithful.com/feed/", tier: 2, dedicated: true}
+  - {id: mufc_latest, name: "MUFC Latest", type: rss, url: "https://mufclatest.com/feed/", tier: 2, dedicated: true}
+  - {id: republik, name: "Republik of Mancunia", type: rss, url: "https://therepublikofmancunia.com/feed/", tier: 2, dedicated: true}
+  - {id: stretty_rant, name: "Stretty Rant", type: rss, url: "https://www.stretford-end.com/feed/", tier: 2, dedicated: true}
+  - {id: faithful_mufc, name: "The Faithful MUFC", type: rss, url: "https://www.thefaithfulmufc.com/feed/", tier: 2, dedicated: true}
+  - {id: united_beyond, name: "United Beyond Manchester", type: rss, url: "https://unitedbeyondmanchester.com/feed/", tier: 2, dedicated: true}
+  - {id: utdreport, name: "UtdReport", type: rss, url: "https://utdreport.co.uk/feed/", tier: 2, dedicated: true}
+  - {id: stretty_news, name: "Stretty News", type: rss, url: "https://strettynews.com/feed/", tier: 2, dedicated: true}
+  - {id: mu_news_now, name: "Man United News Now", type: rss, url: "https://feeds.feedburner.com/manunitednewsnow", tier: 2, dedicated: true}
+  - {id: busby_way, name: "The Busby Way", type: rss, url: "https://thebusbyway.com/feed/", tier: 2, dedicated: true}
+  - {id: united_in_focus, name: "United In Focus", type: rss, url: "https://www.unitedinfocus.com/news/feed/", tier: 2, dedicated: true}
+  - {id: redmancunian, name: "RedMancunian", type: rss, url: "https://redmancunian.com/feed/", tier: 2, dedicated: true}
+  - {id: mu_core, name: "Man Utd Core", type: rss, url: "https://manunitedcore.com/feed/rss", tier: 2, dedicated: true}
+  - {id: red_devil_armada, name: "Red Devil Armada", type: rss, url: "https://reddevilarmada.com/feed/", tier: 2, dedicated: true}
+  - {id: red_rants, name: "Red Rants", type: rss, url: "https://redrants.com/feed/", tier: 2, dedicated: true}
+  - {id: stretford_end_arising, name: "Stretford End Arising", type: rss, url: "https://www.stretfordendarising.com/feed/", tier: 2, dedicated: true}
+  - {id: manchester_lalala, name: "Manchester La La La", type: rss, url: "https://www.manchesterlalala.com/feed/", tier: 2, dedicated: true}
+
+  # ---- Google News (pencarian) ----
+  - {id: gn_main, name: "Google News", type: gnews_rss, query: "Manchester United", tier: 2, dedicated: true}
+  - {id: gn_romano, name: "Google News", type: gnews_rss, query: "Fabrizio Romano Manchester United", tier: 2, dedicated: true}
+  - {id: gn_ornstein, name: "Google News", type: gnews_rss, query: "David Ornstein Manchester United", tier: 2, dedicated: true}
+  - {id: gn_injury, name: "Google News", type: gnews_rss, query: "Manchester United injury", tier: 2, dedicated: true}
+  - {id: gn_interview, name: "Google News", type: gnews_rss, query: "Manchester United press conference OR interview", tier: 2, dedicated: true}
+  - {id: gn_pundit, name: "Google News", type: gnews_rss, query: "Manchester United pundit", tier: 2, dedicated: true}
+
+  # ---- Reddit (skor tinggi = berita sedang naik) ----
+  - {id: reddit_reddevils, name: "Reddit", type: reddit, url: "https://www.reddit.com/r/reddevils/hot.json?limit=30&raw_json=1", tier: 2, dedicated: true}
+
+  # ---- API gratis ----
+  - {id: guardian_api, name: "The Guardian", type: guardian, key_env: GUARDIAN_API_KEY, tier: 1, dedicated: true}
+  - {id: gdelt, name: "GDELT", type: gdelt, tier: 3, dedicated: true}
+  - {id: gnews_api, name: "GNews", type: gnews_api, key_env: GNEWS_API_KEY, tier: 3, dedicated: true}
+  - {id: newsdata_api, name: "NewsData", type: newsdata, key_env: NEWSDATA_API_KEY, tier: 3, dedicated: true}
