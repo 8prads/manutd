@@ -15,14 +15,16 @@ Mengumpulkan puluhan sumber, menyaring berita ganda, meringkasnya ke bahasa Indo
 
 ## Fitur
 
-- **40+ sumber gratis**: RSS media utama dan blog fans, Google News, Reddit r/reddevils, Guardian API, GDELT, GNews, dan NewsData.
+- **35+ sumber gratis**: RSS media utama dan blog fans, Google News (termasuk pencarian per situs), Guardian API, GDELT, GNews, dan NewsData. Reddit tersedia tetapi nonaktif secara default karena memblokir server GitHub.
 - **Anti-ganda**: berita yang sama dari banyak sumber hanya dikirim sekali. Sumber tambahan digabung ke pesan lama dengan mengedit pesan itu.
 - **Cooldown topik**: topik yang baru dikirim ditahan selama 15 menit (default). Kabar yang naik tingkat, misalnya rumor menjadi resmi, tetap langsung lewat.
 - **Filter tren**: berita dari blog baru dikirim jika didukung sumber lain atau ramai di Reddit.
 - **Ringkasan AI** berbahasa Indonesia formal tanpa membuang poin penting (Gemini, dengan Groq sebagai cadangan).
 - **Pelabelan otomatis**: `[BREAKING NEWS]`, `[RESMI]`, `[RUMOR]`, `[TRANSFER]`, `[CEDERA]`, `[INTERVIEW]`, `[PUNDIT]`, `[DRAMA]`, `[PERTANDINGAN]`, `[BERITA]`.
-- **Kontrol lewat Telegram**: `/status`, `/pause`, `/resume`, `/cooldown`, `/batas`, `/sumber`.
-- **Peringatan kesehatan**: sumber yang mati atau run yang gagal dilaporkan ke Telegram.
+- **Kontrol lewat Telegram**: `/status`, `/pause`, `/resume`, `/cooldown`, `/batas`, `/sumber`, `/terakhir`, `/pengingat`.
+- **Pengingat terjadwal**: mis. masa berlaku token GitHub, dikirim beberapa hari sebelum kedaluwarsa.
+- **Peringatan kesehatan**: sumber yang mati dilaporkan dalam satu pesan gabungan, dan run yang gagal diberi tahu ke Telegram.
+- **Penjaga berita basi**: tanggal terbit diverifikasi dari halaman artikel, dan AI diminta menandai berita lama sehingga tidak ikut terkirim.
 
 ## Contoh pesan
 
@@ -41,7 +43,7 @@ Label ditampilkan **tebal** dan sumber *miring* di Telegram.
 ```mermaid
 flowchart LR
     A[cron-job.org<br/>tiap 5 menit] --> B[GitHub Actions]
-    B --> C[Ambil 40+ sumber]
+    B --> C[Ambil 35+ sumber]
     C --> D[Saring: relevansi,<br/>umur, duplikat]
     D --> E[Gabung berita sama<br/>dan cooldown topik]
     E --> F[Ringkas dan terjemahkan<br/>Gemini / Groq]
