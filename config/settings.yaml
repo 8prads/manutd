@@ -144,3 +144,17 @@ entities_seed:
   - Sporting
   - Benfica
   - Ajax
+
+# Pengingat berkala yang dikirim ke Telegram (WIB).
+# Ubah tanggal di sini, atau lewat Telegram: /pengingat token_github 2028-11-10
+reminders:
+  - id: token_github
+    judul: "Token GitHub akan kedaluwarsa"
+    kedaluwarsa: "2027-11-10"   # format TAHUN-BULAN-TANGGAL
+    hari_sebelum: 3             # dikirim sekian hari sebelum kedaluwarsa
+    jam: "09:00"                # jam kirim (WIB)
+    isi: >-
+      Token GitHub untuk cron-job.org akan kedaluwarsa pada {tanggal} ({sisa} hari lagi).
+      Buat token baru sebelum tanggal itu (GitHub, Settings, Developer settings, Fine-grained tokens),
+      lalu ganti isi header Authorization di cron-job.org dengan token baru.
+      Setelah itu kirim /pengingat token_github TAHUN-BULAN-TANGGAL untuk mengatur pengingat berikutnya.
