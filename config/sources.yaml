@@ -6,6 +6,7 @@
 # Untuk menonaktifkan sumber: tambahkan enabled: false.
 # quiet: true = sumber opsional, kegagalannya tidak memicu peringatan Telegram.
 # Reddit dinonaktifkan karena Reddit memblokir server GitHub (HTTP 403).
+# GDELT dinonaktifkan karena server GDELT selalu timeout dari GitHub dan memperlambat tiap siklus.
 # ============================================================
 sources:
   # ---- Resmi dan media utama ----
@@ -13,7 +14,7 @@ sources:
   - {id: bbc_football, name: "BBC Sport", type: rss, url: "https://feeds.bbci.co.uk/sport/0/football/rss.xml?edition=uk", tier: 1, dedicated: false}
   - {id: guardian_mu, name: "The Guardian", type: rss, url: "https://www.theguardian.com/football/manchester-united/rss", tier: 1, dedicated: true}
   - {id: sky_football, name: "Sky Sports", type: rss, url: "https://www.skysports.com/rss/12040", tier: 1, dedicated: false}
-  - {id: gn_espn, name: "Google News", type: gnews_rss, query: "Manchester United site:espn.com", tier: 2, dedicated: true}
+  - {id: gn_espn, name: "Google News", type: gnews_rss, query: "Manchester United site:espn.com", tier: 2, dedicated: false}
   - {id: men, name: "Manchester Evening News", type: rss, url: "https://www.manchestereveningnews.co.uk/all-about/manchester-united-fc?service=rss", tier: 1, dedicated: true}
   - {id: f365, name: "Football365", type: rss, url: "https://www.football365.com/manchester-united/rss2", tier: 1, dedicated: true}
 
@@ -50,6 +51,6 @@ sources:
 
   # ---- API gratis ----
   - {id: guardian_api, name: "The Guardian", type: guardian, key_env: GUARDIAN_API_KEY, tier: 1, dedicated: true}
-  - {id: gdelt, name: "GDELT", type: gdelt, tier: 3, dedicated: true, quiet: true}
+  - {id: gdelt, name: "GDELT", type: gdelt, tier: 3, dedicated: true, enabled: false, quiet: true}
   - {id: gnews_api, name: "GNews", type: gnews_api, key_env: GNEWS_API_KEY, tier: 3, dedicated: true, quiet: true}
   - {id: newsdata_api, name: "NewsData", type: newsdata, key_env: NEWSDATA_API_KEY, tier: 3, dedicated: true, quiet: true}
