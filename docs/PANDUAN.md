@@ -44,7 +44,9 @@ Jadwal cadangan dari GitHub (tiap 15 menit) sudah ada di workflow dan aman berja
 
 ## D. Perintah Telegram
 
-`/status` · `/pause` · `/resume` · `/cooldown 15` · `/batas 10` · `/sumber` · `/bantuan`
+`/status` · `/pause` · `/resume` · `/cooldown 15` · `/batas 10` · `/sumber` · `/pengingat` · `/bantuan`
+
+**Pengingat token:** bot mengirim pengingat 3 hari sebelum token kedaluwarsa (default 10 November 2027, jam 09:00 WIB). Setelah memperbarui token, atur tanggal baru dengan `/pengingat token_github 2028-11-10`, atau ubah `kedaluwarsa` di `config/settings.yaml`.
 
 Perintah dibaca setiap siklus, jadi balasannya paling lama sekitar 5 menit.
 
@@ -55,5 +57,11 @@ Perintah dibaca setiap siklus, jadi balasannya paling lama sekitar 5 menit.
 | Tidak ada pesan `[BOT AKTIF]` | Tab Actions, buka run terakhir, baca log. Biasanya secret salah ketik. |
 | Run gagal saat "Simpan state" | Workflow permissions belum *Read and write*. |
 | Ringkasan berbahasa Inggris | Kunci Gemini/Groq salah, atau kuota gratis habis. Bot akan mencoba lagi. |
-| Peringatan "sumber gagal" | Alamat feed berubah atau mati. Nonaktifkan lewat `config/sources.yaml`. |
+| Peringatan "sumber gagal" | Kirim `/sumber` untuk melihat penyebabnya. 403 berarti situs memblokir server GitHub, 404 berarti alamat feed sudah mati. Ganti dengan pencarian Google News per situs (`query: "site:domain.com"`) atau nonaktifkan lewat `config/sources.yaml`. |
+| Berita lama ikut terkirim | Kirim `/terakhir` untuk melihat sumber dan tanggal terbit lima berita terakhir, lalu laporkan agar aturannya diperketat. |
 | Nama model AI tidak ditemukan | Ubah `llm.gemini_models` atau `llm.groq_models` di `config/settings.yaml`. |
+
+
+## Memperbarui bot
+
+Timpa file di repo dengan versi baru (state di branch `state` tetap aman dan kompatibel). Secrets dan pengaturan cron-job.org tidak perlu diubah.
