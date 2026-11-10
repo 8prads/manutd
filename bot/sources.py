@@ -16,9 +16,9 @@ UA = "Mozilla/5.0 (compatible; MUFCNewsBot/1.0; personal news digest)"
 TIMEOUT = (5, 15)
 
 
-def http_get(url, headers=None, params=None):
+def http_get(url, headers=None, params=None, timeout=None):
     import requests
-    return requests.get(url, headers={"User-Agent": UA, **(headers or {})}, params=params, timeout=TIMEOUT)
+    return requests.get(url, headers={"User-Agent": UA, **(headers or {})}, params=params, timeout=timeout or TIMEOUT)
 
 
 # ---------- Parser RSS/Atom (tanpa dependensi tambahan) ----------
@@ -100,13 +100,16 @@ def feed_items(src, entries, cfg, now):
             name = e["source"] or (title.rsplit(" - ", 1)[1] if " - " in title else "Google News")
             if " - " in title:
                 title = title.rsplit(" - ", 1)[0].strip()
+            if name.strip().lower() in {n.lower() for n in cfg.get("skip_publishers", [])}:
+                continue  # tanggal Google News untuk situs resmi sering tidak akurat; feed resmi sudah dibaca langsung
             tier = _tier_for(name, cfg)
             text = "" if summary.startswith(title[:40]) else summary[:400]
             content = ""
         items.append(Item(
             uid=T.make_uid(link, title), title=title, text=text or title, url=link, source=name,
             source_id=src["id"], tier=tier, published=e["pub"] or now, official=bool(src.get("official")),
-            dedicated=src.get("dedicated", True), content=content if len(content) > 600 else ""))
+            dedicated=src.get("dedicated", True), content=content if len(content) > 600 else "",
+            undated=e["pub"] is None))
     return items
 
 
@@ -185,7 +188,7 @@ def fetch_guardian(src, state, cfg, env):
 def fetch_gdelt(src, state, cfg, env):
     r = http_get("https://api.gdeltproject.org/api/v2/doc/doc", params={
         "query": '"Manchester United" sourcelang:english', "mode": "artlist", "format": "json",
-        "maxrecords": 75, "timespan": "2h", "sort": "datedesc"})
+        "maxrecords": 75, "timespan": "2h", "sort": "datedesc"}, timeout=(5, 40))
     r.raise_for_status()
     try:
         arts = r.json().get("articles", [])

@@ -1,6 +1,9 @@
 """Perintah Telegram: /status /pause /resume /cooldown /batas /sumber /bantuan."""
+import html
 import time
 from datetime import datetime, timedelta, timezone
+
+from . import reminders
 
 HELP = (
     "<b>Perintah bot</b>\n\n"
@@ -9,7 +12,9 @@ HELP = (
     "/resume - lanjutkan pengiriman\n"
     "/cooldown 15 - atur cooldown topik (menit, 1-120)\n"
     "/batas 10 - atur maksimal pesan biasa per jam (1-60)\n"
-    "/sumber - daftar sumber bermasalah\n\n"
+    "/sumber - daftar sumber bermasalah beserta penyebabnya\n"
+    "/terakhir - 5 berita terakhir (sumber dan tanggal terbit)\n"
+    "/pengingat - lihat atau ubah tanggal pengingat\n\n"
     "Perintah dibaca setiap siklus (sekitar 5 menit)."
 )
 
@@ -35,9 +40,21 @@ def reply_for(cmd, args, state, cfg, now):
             return f"Format: {cmd} <angka {lo}-{hi}>"
         ov[key] = int(args[0])
         return f"Diatur ke {args[0]} {unit}."
+    if cmd == "/pengingat":
+        return reminders.command(args, state, cfg, now)
     if cmd == "/sumber":
-        bad = [f"- {k} ({v['fails']}x gagal)" for k, v in state["feeds"].items() if v.get("fails", 0) >= 3]
+        bad = [f"- {k} ({v['fails']}x): {html.escape(str(v.get('last_error', ''))[:80])}"
+               for k, v in state["feeds"].items() if v.get("fails", 0) >= 3]
         return "Sumber bermasalah:\n" + "\n".join(bad) if bad else "Semua sumber sehat."
+    if cmd == "/terakhir":
+        sent = sorted((s for s in state["stories"].values() if s["status"] == "sent"),
+                      key=lambda s: s["sent_at"], reverse=True)[:5]
+        if not sent:
+            return "Belum ada berita terkirim."
+        return "<b>5 berita terakhir</b>\n\n" + "\n\n".join(
+            f"[{s['label']}] {html.escape(s['title'][:90])}\nTerbit: {_wib(s['pub'])}\n"
+            f"Sumber: {html.escape(', '.join(x['name'] for x in s['sources']))}\n{html.escape(s['sources'][0]['url'])}"
+            for s in sent)
     if cmd == "/status":
         day = now - 86400
         sent = sum(1 for s in state["stories"].values() if s["status"] == "sent" and (s["sent_at"] or 0) >= day)

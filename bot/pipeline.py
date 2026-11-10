@@ -2,6 +2,7 @@
 import time
 
 from . import text as T
+from .models import STALE
 
 
 class Pipeline:
@@ -97,7 +98,7 @@ class Pipeline:
             "facts": sorted(T.facts(f"{it.title} {it.text[:400]}")), "pub": it.published,
             "first_seen": self.now(), "status": "pending", "retries": 0,
             "sources": [{"name": it.source, "tier": it.tier, "url": it.url, "label": lab}],
-            "official": it.official, "journalist": it.journalist, "reddit": it.score,
+            "official": it.official, "journalist": it.journalist, "reddit": it.score, "verify": it.undated,
             "signals": [], "content": it.content[: self.cfg["summary"]["max_article_chars"]],
             "msg_id": None, "body": None, "label": None, "sent_at": None,
             "needs_edit": False, "edits": 0,
@@ -114,6 +115,7 @@ class Pipeline:
                     and s["edits"] < d["max_edits"]):
                 s["needs_edit"] = True
         s["official"] = s["official"] or it.official
+        s["verify"] = s.get("verify", False) and it.undated
         s["journalist"] = s["journalist"] or it.journalist
         s["reddit"] = max(s["reddit"], it.score)
         if it.content and not s["content"]:
@@ -209,6 +211,10 @@ class Pipeline:
             if label not in unlimited and self._sent_last_hour() >= self.max_per_hour:
                 continue
             body = self.summarize(s)
+            if body == STALE:
+                s["status"], s["drop"] = "dropped", "basi"
+                self.log(f"dibuang (basi): {s['title'][:70]}")
+                continue
             if not body:
                 s["retries"] += 1
                 if s["retries"] <= self.cfg["summary"]["retry_cycles"]:
@@ -222,7 +228,7 @@ class Pipeline:
             if label not in unlimited:
                 self.st["sent_log"].append(now)
             sent += 1
-            self.log(f"terkirim [{label}] {s['title'][:70]}")
+            self.log(f"terkirim [{label}] {s['title'][:70]} | terbit {time.strftime('%Y-%m-%d %H:%M', time.gmtime(s['pub']))} UTC")
         return sent
 
     def refresh_edits(self):

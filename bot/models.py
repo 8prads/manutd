@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+STALE = "__STALE__"  # penanda: berita ternyata basi, jangan dikirim
+
 
 @dataclass
 class Item:
@@ -17,3 +19,4 @@ class Item:
     score: int = 0             # skor Reddit
     signal_only: bool = False  # hanya penanda tren, tidak dikirim sendiri
     content: str = ""          # teks penuh bila sumber menyediakan
+    undated: bool = False      # sumber tidak mencantumkan tanggal terbit
