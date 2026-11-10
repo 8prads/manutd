@@ -96,6 +96,11 @@ people:
     - Danny Murphy
     - Gabby Agbonlahor
 
+# Penerbit di Google News yang diabaikan (feed resminya sudah dibaca langsung)
+skip_publishers:
+  - Manchester United
+  - ManUtd.com
+
 # Media yang dianggap sumber utama (tier 1) bila muncul lewat Google News/Reddit
 tier1_names:
   - BBC Sport
