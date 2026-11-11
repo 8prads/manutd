@@ -44,7 +44,9 @@ Jadwal cadangan dari GitHub (tiap 15 menit) sudah ada di workflow dan aman berja
 
 ## D. Perintah Telegram
 
-`/status` · `/pause` · `/resume` · `/cooldown 15` · `/batas 10` · `/sumber` · `/pengingat` · `/bantuan`
+`/status` · `/pause` · `/resume` · `/cooldown 15` · `/batas 10` · `/sumber` · `/terakhir` · `/pengingat` · `/opini` · `/bantuan`
+
+**Draf opini:** di Telegram, tekan lama sebuah berita dari bot lalu pilih Reply, ketik `/opini` (boleh ditambah arah opini, misalnya `/opini Carrick perlu diberi waktu`), lalu kirim. Dalam satu siklus bot membalas dengan draf opini berpov Anda, mengutip perintah Anda.
 
 **Pengingat token:** bot mengirim pengingat 3 hari sebelum token kedaluwarsa (default 10 November 2027, jam 09:00 WIB). Setelah memperbarui token, atur tanggal baru dengan `/pengingat token_github 2028-11-10`, atau ubah `kedaluwarsa` di `config/settings.yaml`.
 
