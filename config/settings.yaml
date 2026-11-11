@@ -163,3 +163,57 @@ reminders:
       Buat token baru sebelum tanggal itu (GitHub, Settings, Developer settings, Fine-grained tokens),
       lalu ganti isi header Authorization di cron-job.org dengan token baru.
       Setelah itu kirim /pengingat token_github TAHUN-BULAN-TANGGAL untuk mengatur pengingat berikutnya.
+
+# Nama pemain, pelatih, dan staf yang dianggap penanda berita Man Utd, selain kata kunci di atas.
+# Berita hasil pencarian umum yang judulnya hanya menyebut nama ini tetap lolos.
+# PERBARUI saat ada transfer. Satu nama per baris. Pakai nama lengkap bila nama belakangnya umum.
+mu_names:
+  - Michael Carrick
+  - Carrick
+  - Jason Wilcox
+  - Omar Berrada
+  - Bruno Fernandes
+  - Casemiro
+  - Kobbie Mainoo
+  - Mainoo
+  - Bryan Mbeumo
+  - Mbeumo
+  - Sesko
+  - Šeško
+  - Matheus Cunha
+  - Cunha
+  - Amad Diallo
+  - Amad
+  - Diogo Dalot
+  - Dalot
+  - Mazraoui
+  - Lisandro Martinez
+  - Matthijs de Ligt
+  - de Ligt
+  - Leny Yoro
+  - Yoro
+  - Harry Maguire
+  - Luke Shaw
+  - Mason Mount
+  - Manuel Ugarte
+  - Ugarte
+  - Zirkzee
+  - Malacia
+  - Dorgu
+  - Ayden Heaven
+  - Senne Lammens
+  - Lammens
+  - Bayindir
+  - Andre Onana
+  - Rashford
+  - Youri Tielemans
+  - Tielemans
+  - Carlos Baleba
+  - Baleba
+  - Andrey Santos
+  - Hojlund
+  - Shea Lacey
+  - Harry Amass
+  - Tynan Thompson
+  - Diego Leon
+  - Cristian Orozco

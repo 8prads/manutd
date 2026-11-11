@@ -4,6 +4,8 @@
 # dedicated: true = khusus Man Utd (tidak perlu disaring kata kunci)
 # Sumber yang mati dilewati otomatis dan dilaporkan lewat Telegram.
 # Untuk menonaktifkan sumber: tambahkan enabled: false.
+# dedicated: false = berita wajib menyebut Man Utd di judul/cuplikan (untuk pencarian umum).
+# mu_only: true = sumber pasti khusus Man Utd, tidak dicek ulang setelah diringkas.
 # quiet: true = sumber opsional, kegagalannya tidak memicu peringatan Telegram.
 # Reddit dinonaktifkan karena Reddit memblokir server GitHub (HTTP 403).
 # GDELT dinonaktifkan karena server GDELT selalu timeout dari GitHub dan memperlambat tiap siklus.
@@ -32,25 +34,25 @@ sources:
   - {id: mu_news_now, name: "Man United News Now", type: rss, url: "https://feeds.feedburner.com/manunitednewsnow", tier: 2, dedicated: true}
   - {id: busby_way, name: "The Busby Way", type: rss, url: "https://thebusbyway.com/feed/", tier: 2, dedicated: true}
   - {id: united_in_focus, name: "United In Focus", type: rss, url: "https://www.unitedinfocus.com/news/feed/", tier: 2, dedicated: true}
-  - {id: gn_redmancunian, name: "Google News", type: gnews_rss, query: "site:redmancunian.com", tier: 2, dedicated: true}
+  - {id: gn_redmancunian, name: "Google News", type: gnews_rss, query: "site:redmancunian.com", tier: 2, dedicated: true, mu_only: true}
   - {id: mu_core, name: "Man Utd Core", type: rss, url: "https://manunitedcore.com/feed/rss", tier: 2, dedicated: true}
   - {id: red_devil_armada, name: "Red Devil Armada", type: rss, url: "https://reddevilarmada.com/feed/", tier: 2, dedicated: true}
   - {id: red_rants, name: "Red Rants", type: rss, url: "https://redrants.com/feed/", tier: 2, dedicated: true}
-  - {id: gn_stretford_end_arising, name: "Google News", type: gnews_rss, query: "site:stretfordendarising.com", tier: 2, dedicated: true}
+  - {id: gn_stretford_end_arising, name: "Google News", type: gnews_rss, query: "site:stretfordendarising.com", tier: 2, dedicated: true, mu_only: true}
 
   # ---- Google News (pencarian) ----
-  - {id: gn_main, name: "Google News", type: gnews_rss, query: "Manchester United", tier: 2, dedicated: true}
-  - {id: gn_romano, name: "Google News", type: gnews_rss, query: "Fabrizio Romano Manchester United", tier: 2, dedicated: true}
-  - {id: gn_ornstein, name: "Google News", type: gnews_rss, query: "David Ornstein Manchester United", tier: 2, dedicated: true}
-  - {id: gn_injury, name: "Google News", type: gnews_rss, query: "Manchester United injury", tier: 2, dedicated: true}
-  - {id: gn_interview, name: "Google News", type: gnews_rss, query: "Manchester United press conference OR interview", tier: 2, dedicated: true}
-  - {id: gn_pundit, name: "Google News", type: gnews_rss, query: "Manchester United pundit", tier: 2, dedicated: true}
+  - {id: gn_main, name: "Google News", type: gnews_rss, query: "Manchester United", tier: 2, dedicated: false}
+  - {id: gn_romano, name: "Google News", type: gnews_rss, query: "Fabrizio Romano Manchester United", tier: 2, dedicated: false}
+  - {id: gn_ornstein, name: "Google News", type: gnews_rss, query: "David Ornstein Manchester United", tier: 2, dedicated: false}
+  - {id: gn_injury, name: "Google News", type: gnews_rss, query: "Manchester United injury", tier: 2, dedicated: false}
+  - {id: gn_interview, name: "Google News", type: gnews_rss, query: "Manchester United press conference OR interview", tier: 2, dedicated: false}
+  - {id: gn_pundit, name: "Google News", type: gnews_rss, query: "Manchester United pundit", tier: 2, dedicated: false}
 
   # ---- Reddit (skor tinggi = berita sedang naik) ----
   - {id: reddit_reddevils, name: "Reddit", type: reddit, url: "https://www.reddit.com/r/reddevils/hot.json?limit=30&raw_json=1", tier: 2, dedicated: true, enabled: false, quiet: true}
 
   # ---- API gratis ----
-  - {id: guardian_api, name: "The Guardian", type: guardian, key_env: GUARDIAN_API_KEY, tier: 1, dedicated: true}
+  - {id: guardian_api, name: "The Guardian", type: guardian, key_env: GUARDIAN_API_KEY, tier: 1, dedicated: false}
   - {id: gdelt, name: "GDELT", type: gdelt, tier: 3, dedicated: true, enabled: false, quiet: true}
-  - {id: gnews_api, name: "GNews", type: gnews_api, key_env: GNEWS_API_KEY, tier: 3, dedicated: true, quiet: true}
-  - {id: newsdata_api, name: "NewsData", type: newsdata, key_env: NEWSDATA_API_KEY, tier: 3, dedicated: true, quiet: true}
+  - {id: gnews_api, name: "GNews", type: gnews_api, key_env: GNEWS_API_KEY, tier: 3, dedicated: false, quiet: true}
+  - {id: newsdata_api, name: "NewsData", type: newsdata, key_env: NEWSDATA_API_KEY, tier: 3, dedicated: false, quiet: true}
