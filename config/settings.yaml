@@ -78,6 +78,26 @@ people:
     - Rob Dawson
     - Adam Crafton
     - Jonathan Northcroft
+    - Chris Wheeler
+    - Ben Jacobs
+    - Gianluca Di Marzio
+    - Matt Law
+    - Jamie Jackson
+    - Mike Keegan
+    - Neil Jones
+    - Henry Winter
+  # Nama panggilan yang juga dikenali di teks berita (dipakai untuk menulis nama jurnalis sebagai sumber)
+  journalist_aliases:
+    Fabrizio Romano: [Romano]
+    David Ornstein: [Ornstein]
+    Laurie Whitwell: [Whitwell]
+    Samuel Luckhurst: [Luckhurst]
+    Chris Wheeler: [Wheeler]
+    Paul Hirst: [Hirst]
+    Mark Ogden: [Ogden]
+    Adam Crafton: [Crafton]
+    Jonathan Northcroft: [Northcroft]
+    Gianluca Di Marzio: [Di Marzio]
   pundits:
     - Gary Neville
     - Roy Keane
@@ -95,6 +115,22 @@ people:
     - Chris Sutton
     - Danny Murphy
     - Gabby Agbonlahor
+
+# Platform besar: ditulis sebagai sumber (bersama tier1_names). Platform kecil/komunitas diganti
+# nama jurnalis bila teridentifikasi di teks berita; jika tidak, nama platform tetap ditampilkan.
+big_platforms:
+  - Daily Mail
+  - Mail Online
+  - Mirror
+  - Daily Mirror
+  - Daily Express
+  - Express
+  - The Sun
+  - Metro
+  - Evening Standard
+  - talkSPORT
+  - Goal
+  - Goal.com
 
 # Penerbit di Google News yang diabaikan (feed resminya sudah dibaca langsung)
 skip_publishers:

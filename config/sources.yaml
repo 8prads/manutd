@@ -48,6 +48,10 @@ sources:
   - {id: gn_interview, name: "Google News", type: gnews_rss, query: "Manchester United press conference OR interview", tier: 2, dedicated: false}
   - {id: gn_pundit, name: "Google News", type: gnews_rss, query: "Manchester United pundit", tier: 2, dedicated: false}
 
+  - {id: gn_tabloids, name: "Google News", type: gnews_rss, query: '"Manchester United" (site:dailymail.co.uk OR site:mirror.co.uk OR site:express.co.uk OR site:thesun.co.uk OR site:metro.co.uk)', tier: 2, dedicated: false}
+  - {id: gn_sports_sites, name: "Google News", type: gnews_rss, query: '"Manchester United" (site:sportskeeda.com OR site:givemesport.com OR site:sportsmole.co.uk OR site:teamtalk.com OR site:90min.com OR site:goal.com OR site:footballinsider247.com)', tier: 2, dedicated: false}
+  - {id: gn_quality, name: "Google News", type: gnews_rss, query: '"Manchester United" (site:talksport.com OR site:standard.co.uk OR site:independent.co.uk OR site:telegraph.co.uk OR site:thetimes.com OR site:nytimes.com)', tier: 2, dedicated: false}
+
   # ---- Reddit (skor tinggi = berita sedang naik) ----
   - {id: reddit_reddevils, name: "Reddit", type: reddit, url: "https://www.reddit.com/r/reddevils/hot.json?limit=30&raw_json=1", tier: 2, dedicated: true, enabled: false, quiet: true}
 
