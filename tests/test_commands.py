@@ -19,7 +19,7 @@ class FakeTG:
     def updates(self, offset):
         return [u for u in self.ups if u["update_id"] >= offset]
 
-    def send(self, t):
+    def send(self, t, reply_to=None):
         self.out.append(t)
         return 1
 
