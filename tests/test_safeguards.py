@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import test_pipeline as tp  # noqa: E402
 from bot import llm, main as M, sources as SRC, state as S, text as T  # noqa: E402
-from bot.models import STALE, Item  # noqa: E402
+from bot.models import IRRELEVANT, STALE, Item  # noqa: E402
 
 CFG = tp.CFG
 
@@ -26,6 +26,55 @@ class TestSafeguards(unittest.TestCase):
         pipe.dispatch()
         self.assertEqual(tg.sent, [])
         self.assertEqual(list(pipe.st["stories"].values())[0]["drop"], "basi")
+
+    def test_irrelevant_story_dropped_by_ai_flag(self):
+        tp.CLOCK = tp.Clock()
+        tg = tp.FakeTG()
+        pipe = tp.Pipeline(CFG, S.new_state(), tg, lambda s: IRRELEVANT, now=tp.CLOCK, log=lambda *a: None)
+        pipe.ingest([tp.item("Packers coach says Josh Jacobs needs surgery", "ESPN")])
+        pipe.dispatch()
+        self.assertEqual(tg.sent, [])
+        self.assertEqual(list(pipe.st["stories"].values())[0]["drop"], "tidak relevan")
+
+    def test_no_ai_and_no_mu_mention_is_dropped_instead_of_english_fallback(self):
+        tp.CLOCK = tp.Clock()
+        tg = tp.FakeTG()
+        pipe = tp.Pipeline(CFG, S.new_state(), tg, lambda s: None, now=tp.CLOCK, log=lambda *a: None)
+        pipe.ingest([tp.item("Packers coach says Josh Jacobs needs surgery", "ESPN")])
+        for _ in range(4):
+            pipe.dispatch()
+        self.assertEqual(tg.sent, [])
+
+    def test_search_results_must_mention_mu_after_summary(self):
+        for body, expect in (("Liga basket baru akan diluncurkan pada bulan April untuk pemain muda.", 0),
+                             ("Manchester United menyepakati kontrak baru dengan Casemiro hingga 2028.", 1)):
+            tp.CLOCK = tp.Clock()
+            tg = tp.FakeTG()
+            pipe = tp.Pipeline(CFG, S.new_state(), tg, lambda s, b=body: b, now=tp.CLOCK, log=lambda *a: None)
+            pipe.ingest([tp.item("Futures league announced", "ESPN", tier=1, mu_only=False)])
+            pipe.dispatch()
+            self.assertEqual(len(tg.sent), expect)
+
+    def test_mu_only_source_not_rechecked(self):
+        tp.CLOCK = tp.Clock()
+        tg = tp.FakeTG()
+        pipe = tp.Pipeline(CFG, S.new_state(), tg, lambda s: "Casemiro menyepakati kontrak baru dengan klub.",
+                           now=tp.CLOCK, log=lambda *a: None)
+        pipe.ingest([tp.item("Casemiro agrees new contract", "MUFC Latest", tier=1)])
+        pipe.dispatch()
+        self.assertEqual(len(tg.sent), 1)
+
+    def test_player_names_count_as_mu_keywords(self):
+        rel = T.build_relevance(CFG)
+        mk = lambda t: Item(uid="u", title=t, text=t, url="u", source="s", source_id="s", tier=1, published=0, dedicated=False)
+        self.assertTrue(T.is_relevant(mk("Mbeumo scores twice in derby"), rel))
+        self.assertTrue(T.is_relevant(mk("Carrick praises Sesko after win"), rel))
+        self.assertFalse(T.is_relevant(mk("Futures Basketball League to launch in April"), rel))
+        self.assertFalse(T.is_relevant(mk("Mount Everest climbers return"), rel))
+
+    def test_ai_flags_parsed(self):
+        self.assertEqual(llm._finish("TIDAK RELEVAN"), IRRELEVANT)
+        self.assertEqual(llm._finish("basi."), STALE)
 
     def test_page_date_extraction(self):
         h1 = '<meta property="article:published_time" content="2026-03-12T10:00:00+00:00">'
