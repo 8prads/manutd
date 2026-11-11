@@ -14,6 +14,8 @@ HELP = (
     "/batas 10 - atur maksimal pesan biasa per jam (1-60)\n"
     "/sumber - daftar sumber bermasalah beserta penyebabnya\n"
     "/terakhir - 5 berita terakhir (sumber dan tanggal terbit)\n"
+    "/opini - balas (quote) sebuah berita lalu kirim /opini untuk draf opini berpov Anda; "
+    "tambahkan arah opini bila perlu, mis. /opini Carrick perlu diberi waktu\n"
     "/pengingat - lihat atau ubah tanggal pengingat\n\n"
     "Perintah dibaca setiap siklus (sekitar 5 menit)."
 )
@@ -71,6 +73,8 @@ def reply_for(cmd, args, state, cfg, now):
 
 
 def handle(tg, state, cfg, chat_id, log=print):
+    """Proses perintah masuk. Kembalikan daftar pekerjaan /opini untuk diproses main."""
+    jobs = []
     for u in tg.updates(state["tg_offset"]):
         state["tg_offset"] = u["update_id"] + 1
         m = u.get("message") or {}
@@ -79,8 +83,19 @@ def handle(tg, state, cfg, chat_id, log=print):
         text = (m.get("text") or "").strip()
         if not text.startswith("/"):
             continue
-        cmd, *args = text.split()
-        resp = reply_for(cmd.split("@")[0].lower(), args, state, cfg, time.time())
+        cmd, _, notes = text.partition(" ")
+        c, mid = cmd.split("@")[0].lower(), m.get("message_id")
+        if c == "/opini":
+            q = m.get("reply_to_message")
+            if not q or not (q.get("text") or q.get("caption")):
+                tg.send("Balas (quote) pesan berita yang ingin dibuatkan opini, lalu kirim /opini. "
+                        "Tambahkan arah opini bila perlu, misalnya: /opini Carrick perlu diberi waktu.", reply_to=mid)
+            else:
+                jobs.append({"cmd_id": mid, "quoted": q, "notes": notes.strip()})
+                log("perintah /opini")
+            continue
+        resp = reply_for(c, notes.split(), state, cfg, time.time())
         if resp:
-            tg.send(resp)
+            tg.send(resp, reply_to=mid)
             log(f"perintah {cmd}")
+    return jobs

@@ -28,13 +28,15 @@ class Telegram:
             return None
         return None
 
-    def send(self, text):
+    def send(self, text, reply_to=None):
         if self.dry:
             self._n += 1
-            print("----- [DRY] kirim -----\n" + text + "\n-----------------------")
+            print(f"----- [DRY] kirim (balas #{reply_to}) -----\n" + text + "\n-----------------------")
             return self._n
-        res = self._call("sendMessage", {"chat_id": self.chat_id, "text": text, "parse_mode": "HTML",
-                                         "disable_web_page_preview": True})
+        payload = {"chat_id": self.chat_id, "text": text, "parse_mode": "HTML", "disable_web_page_preview": True}
+        if reply_to:
+            payload["reply_parameters"] = {"message_id": reply_to, "allow_sending_without_reply": True}
+        res = self._call("sendMessage", payload)
         return res["message_id"] if res else None
 
     def edit(self, message_id, text):

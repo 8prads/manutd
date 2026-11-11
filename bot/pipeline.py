@@ -13,6 +13,8 @@ class Pipeline:
         self.pundit_re = T.build_pundit_re(cfg)
         names = cfg["people"]["trusted_journalists"] + cfg["people"]["pundits"] + cfg.get("entities_seed", [])
         self.seed = {t for n in names for t in T.tokens(n)}
+        self.jr = T.build_journalist_re(cfg)
+        self.big = {x.lower() for x in cfg.get("big_platforms", []) + cfg["tier1_names"]}
 
     # ---------- pengaturan (bisa diubah lewat Telegram) ----------
     @property
@@ -57,13 +59,16 @@ class Pipeline:
                 continue
             et = T.event_type(f"{it.title} {it.text[:300]}")
             lab = self._item_label(it, et)
+            jn = T.find_journalists(f"{it.title} {it.text} {it.content[:4000]}", self.jr)
+            if it.journalist and it.source not in jn:
+                jn.insert(0, it.source)
             story = self._match(toks, et, it, d)
             if story and story["status"] == "sent" and T.rank(lab) > T.rank(story["label"]):
                 story = None  # naik tingkat (mis. RUMOR -> RESMI): jadikan berita baru
             if story:
-                self._attach(story, it, d, lab)
+                self._attach(story, it, d, lab, jn)
             elif not it.signal_only:
-                self._new_story(it, toks, et, lab)
+                self._new_story(it, toks, et, lab, jn)
 
     def _match(self, toks, et, it, d):
         df, n = self.st["df"], self.st["n_docs"]
@@ -90,7 +95,7 @@ class Pipeline:
         strong = it.tier == 1 or it.journalist
         return T.classify(it.title, it.text, it.official, strong, 1, et, self.pundit_re)
 
-    def _new_story(self, it, toks, et, lab):
+    def _new_story(self, it, toks, et, lab, jn):
         df, n = self.st["df"], self.st["n_docs"]
         self.st["stories"][it.uid] = {
             "id": it.uid, "title": it.title, "text": it.text[:600], "tokens": toks[:40], "ttokens": T.tokens(it.title)[:20],
@@ -99,17 +104,20 @@ class Pipeline:
             "first_seen": self.now(), "status": "pending", "retries": 0,
             "sources": [{"name": it.source, "tier": it.tier, "url": it.url, "label": lab, "sid": it.source_id}],
             "official": it.official, "journalist": it.journalist, "reddit": it.score, "verify": it.undated,
-            "mu_only": it.mu_only,
+            "mu_only": it.mu_only, "journalists": list(jn),
             "signals": [], "content": it.content[: self.cfg["summary"]["max_article_chars"]],
             "msg_id": None, "body": None, "label": None, "sent_at": None,
             "needs_edit": False, "edits": 0,
         }
 
-    def _attach(self, s, it, d, lab):
+    def _attach(self, s, it, d, lab, jn):
         if it.signal_only:
             if it.source not in s["signals"]:
                 s["signals"].append(it.source)
             return
+        for j in jn:
+            if j not in s.setdefault("journalists", []):
+                s["journalists"].append(j)
         if it.source not in {x["name"] for x in s["sources"]}:
             s["sources"].append({"name": it.source, "tier": it.tier, "url": it.url, "label": lab, "sid": it.source_id})
             if (s["status"] == "sent" and self.now() - s["sent_at"] <= d["merge_window_minutes"] * 60
@@ -128,10 +136,22 @@ class Pipeline:
     def _best_tier(s):
         return min(x["tier"] for x in s["sources"])
 
-    @staticmethod
-    def source_names(s):
+    def source_names(self, s):
+        """Platform besar ditulis apa adanya. Platform kecil/komunitas diganti nama jurnalis bila ada."""
+        journ = list(s.get("journalists", []))
         order = sorted(enumerate(s["sources"]), key=lambda p: (p[1]["tier"], p[0]))
-        return [x["name"] for _, x in order]
+        bigs, smalls = [], []
+        for _, x in order:
+            n = x["name"]
+            if n in journ:
+                continue
+            (bigs if n.lower() in self.big else smalls).append(n)
+        names = bigs + journ + ([] if journ else smalls)
+        out = []
+        for n in names:
+            if n not in out:
+                out.append(n)
+        return out or [s["sources"][0]["name"]]
 
     def _eligible(self, s):
         if s["official"] or s["journalist"] or self._best_tier(s) == 1:

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-from . import commands, reminders, state as S
+from . import commands, opini, reminders, state as S
 from .llm import make_summarizer
 from .pipeline import Pipeline
 from .sources import fetch_all
@@ -53,7 +53,10 @@ def main():
     state = S.load(path)
     tg = Telegram(env.get("TELEGRAM_BOT_TOKEN", ""), env.get("TELEGRAM_CHAT_ID", ""), dry=dry)
 
-    commands.handle(tg, state, cfg, env.get("TELEGRAM_CHAT_ID", ""))
+    pipe = Pipeline(cfg, state, tg, make_summarizer(cfg, env), log=print)
+    jobs = commands.handle(tg, state, cfg, env.get("TELEGRAM_CHAT_ID", ""))
+    if jobs:
+        opini.process(jobs, state, cfg, env, tg, pipe)
     reminders.run(tg, state, cfg, time.time())
     if state["paused"]:
         print("dijeda")
@@ -66,7 +69,6 @@ def main():
     items, results = fetch_all(srcs, state, cfg, env)
     quiet = {x["id"] for x in srcs if x.get("quiet")}
     update_health(results, state, tg, cfg["health"]["alert_after_failures"], quiet)
-    pipe = Pipeline(cfg, state, tg, make_summarizer(cfg, env), log=print)
 
     # Sumber yang baru pertama kali terbaca dicatat diam-diam (mencegah berita lama membanjir)
     feeds = state["feeds"]

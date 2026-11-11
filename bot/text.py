@@ -250,3 +250,24 @@ def format_message(label, body, sources):
         body = cut[: cut.rfind(". ") + 1] if ". " in cut else cut
     esc = html.escape
     return f"<b>[{esc(label)}]</b>\n\n{esc(body)}\n\n<i>({esc(', '.join(sources))})</i>"
+
+
+# ---------- Jurnalis ----------
+def build_journalist_re(cfg):
+    p = cfg["people"]
+    aliases = p.get("journalist_aliases", {})
+    out = []
+    for name in p["trusted_journalists"]:
+        forms = sorted([name] + list(aliases.get(name, [])), key=len, reverse=True)
+        out.append((name, re.compile(r"\b(?:%s)\b" % "|".join(re.escape(f) for f in forms), re.I)))
+    return out
+
+
+def find_journalists(text, jr):
+    """Nama jurnalis tepercaya yang disebut di teks, urut kemunculan pertama."""
+    hits = []
+    for name, rx in jr:
+        m = rx.search(text or "")
+        if m:
+            hits.append((m.start(), name))
+    return [n for _, n in sorted(hits)]
