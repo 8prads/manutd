@@ -109,7 +109,7 @@ def feed_items(src, entries, cfg, now):
             uid=T.make_uid(link, title), title=title, text=text or title, url=link, source=name,
             source_id=src["id"], tier=tier, published=e["pub"] or now, official=bool(src.get("official")),
             dedicated=src.get("dedicated", True), content=content if len(content) > 600 else "",
-            undated=e["pub"] is None))
+            undated=e["pub"] is None, mu_only=bool(src.get("mu_only", src["type"] != "gnews_rss"))))
     return items
 
 
@@ -181,7 +181,8 @@ def fetch_guardian(src, state, cfg, env):
         items.append(Item(
             uid=T.make_uid(x["webUrl"]), title=x["webTitle"], text=T.clean_html(f.get("trailText", ""))[:600] or x["webTitle"],
             url=x["webUrl"], source="The Guardian", source_id=src["id"], tier=1,
-            published=parse_date(x["webPublicationDate"]) or time.time(), content=f.get("bodyText", "")[:6000]))
+            published=parse_date(x["webPublicationDate"]) or time.time(), content=f.get("bodyText", "")[:6000],
+            mu_only=False))
     return items
 
 
@@ -204,7 +205,7 @@ def fetch_gdelt(src, state, cfg, env):
         items.append(Item(
             uid=T.make_uid(a["url"]), title=a.get("title", ""), text=a.get("title", ""), url=a["url"],
             source=a.get("domain", "GDELT"), source_id=src["id"], tier=3, published=ts or time.time(),
-            signal_only=True))
+            signal_only=True, mu_only=False))
     return items
 
 
@@ -215,7 +216,8 @@ def fetch_gnews_api(src, state, cfg, env):
     return [Item(
         uid=T.make_uid(a["url"]), title=a["title"], text=(a.get("description") or a["title"])[:600], url=a["url"],
         source=(a.get("source") or {}).get("name", "GNews"), source_id=src["id"], tier=3,
-        published=parse_date(a.get("publishedAt", "")) or time.time()) for a in r.json().get("articles", [])]
+        published=parse_date(a.get("publishedAt", "")) or time.time(), mu_only=False)
+        for a in r.json().get("articles", [])]
 
 
 def fetch_newsdata(src, state, cfg, env):
@@ -225,7 +227,7 @@ def fetch_newsdata(src, state, cfg, env):
     return [Item(
         uid=T.make_uid(a["link"]), title=a["title"], text=(a.get("description") or a["title"])[:600], url=a["link"],
         source=a.get("source_name") or a.get("source_id") or "NewsData", source_id=src["id"], tier=3,
-        published=parse_date(a.get("pubDate", "")) or time.time()) for a in r.json().get("results", [])]
+        published=parse_date(a.get("pubDate", "")) or time.time(), mu_only=False) for a in r.json().get("results", [])]
 
 
 FETCHERS = {

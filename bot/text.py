@@ -136,7 +136,7 @@ def clean_html(s):
 
 # ---------- Relevansi ----------
 def build_relevance(cfg):
-    keys = [re.escape(k) for k in cfg["filter"]["keywords"]]
+    keys = [re.escape(k) for k in list(cfg["filter"]["keywords"]) + list(cfg.get("mu_names", []))]
     excl = [re.escape(k) for k in cfg["filter"]["exclude"]]
     return (
         re.compile(r"\b(?:%s)\b" % "|".join(keys), re.I) if keys else None,

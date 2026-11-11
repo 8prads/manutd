@@ -2,7 +2,7 @@
 import time
 
 from . import text as T
-from .models import STALE
+from .models import IRRELEVANT, STALE
 
 
 class Pipeline:
@@ -97,8 +97,9 @@ class Pipeline:
             "ents": self._entities(toks), "etype": et,
             "facts": sorted(T.facts(f"{it.title} {it.text[:400]}")), "pub": it.published,
             "first_seen": self.now(), "status": "pending", "retries": 0,
-            "sources": [{"name": it.source, "tier": it.tier, "url": it.url, "label": lab}],
+            "sources": [{"name": it.source, "tier": it.tier, "url": it.url, "label": lab, "sid": it.source_id}],
             "official": it.official, "journalist": it.journalist, "reddit": it.score, "verify": it.undated,
+            "mu_only": it.mu_only,
             "signals": [], "content": it.content[: self.cfg["summary"]["max_article_chars"]],
             "msg_id": None, "body": None, "label": None, "sent_at": None,
             "needs_edit": False, "edits": 0,
@@ -110,12 +111,13 @@ class Pipeline:
                 s["signals"].append(it.source)
             return
         if it.source not in {x["name"] for x in s["sources"]}:
-            s["sources"].append({"name": it.source, "tier": it.tier, "url": it.url, "label": lab})
+            s["sources"].append({"name": it.source, "tier": it.tier, "url": it.url, "label": lab, "sid": it.source_id})
             if (s["status"] == "sent" and self.now() - s["sent_at"] <= d["merge_window_minutes"] * 60
                     and s["edits"] < d["max_edits"]):
                 s["needs_edit"] = True
         s["official"] = s["official"] or it.official
         s["verify"] = s.get("verify", False) and it.undated
+        s["mu_only"] = s.get("mu_only", False) or it.mu_only
         s["journalist"] = s["journalist"] or it.journalist
         s["reddit"] = max(s["reddit"], it.score)
         if it.content and not s["content"]:
@@ -182,6 +184,10 @@ class Pipeline:
         cut = self.now() - 3600
         return sum(1 for t in self.st["sent_log"] if t >= cut)
 
+    def _mentions_mu(self, s, extra=""):
+        keys = self.rel[0]
+        return bool(keys and keys.search(f"{s['title']} {s['text']} {s.get('content', '')} {extra}"))
+
     def _fallback_body(self, s):
         sentences = [x.strip() for x in (s["text"] or s["title"]).replace("\n", " ").split(". ") if x.strip()]
         body = ". ".join(sentences[:3]) or s["title"]
@@ -211,9 +217,15 @@ class Pipeline:
             if label not in unlimited and self._sent_last_hour() >= self.max_per_hour:
                 continue
             body = self.summarize(s)
-            if body == STALE:
-                s["status"], s["drop"] = "dropped", "basi"
-                self.log(f"dibuang (basi): {s['title'][:70]}")
+            if body in (STALE, IRRELEVANT):
+                s["status"], s["drop"] = "dropped", "basi" if body == STALE else "tidak relevan"
+                self.log(f"dibuang ({s['drop']}): {s['title'][:70]}")
+                continue
+            if (not body and not self._mentions_mu(s)) or (
+                    not s.get("mu_only", True) and not self._mentions_mu(s, body or "")):
+                # Hasil pencarian umum wajib menyebut Man Utd di judul, teks, atau ringkasan
+                s["status"], s["drop"] = "dropped", "tidak relevan"
+                self.log(f"dibuang (tidak menyebut Man Utd): {s['title'][:70]}")
                 continue
             if not body:
                 s["retries"] += 1

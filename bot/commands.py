@@ -53,7 +53,8 @@ def reply_for(cmd, args, state, cfg, now):
             return "Belum ada berita terkirim."
         return "<b>5 berita terakhir</b>\n\n" + "\n\n".join(
             f"[{s['label']}] {html.escape(s['title'][:90])}\nTerbit: {_wib(s['pub'])}\n"
-            f"Sumber: {html.escape(', '.join(x['name'] for x in s['sources']))}\n{html.escape(s['sources'][0]['url'])}"
+            f"Sumber: {html.escape(', '.join(x['name'] + ' [' + x.get('sid', '?') + ']' for x in s['sources']))}\n"
+            f"{html.escape(s['sources'][0]['url'])}"
             for s in sent)
     if cmd == "/status":
         day = now - 86400
