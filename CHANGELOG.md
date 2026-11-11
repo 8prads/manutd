@@ -2,6 +2,15 @@
 
 Setiap versi mencantumkan file yang berubah, supaya mudah menimpa file yang tepat di repo.
 
+## v1.6 - Daftar nama pemain
+- Nama pemain, pelatih, dan staf (`mu_names`) ikut dianggap penanda berita Man Utd, sehingga berita yang judulnya hanya menyebut nama pemain tidak terbuang.
+- File: `config/settings.yaml`, `bot/text.py`, `tests/test_safeguards.py`, `CHANGELOG.md`.
+
+## v1.5 - Berita nyasar (basket, dll.)
+- Hasil pencarian umum (Google News, GNews, NewsData, Guardian) kini wajib menyebut Man Utd di judul, teks, atau ringkasan; pencarian Google News disaring kata kunci.
+- `/terakhir` kini menampilkan kode sumber (mis. `ESPN [gn_main]`) untuk melacak asal berita.
+- File: `bot/models.py`, `bot/sources.py`, `bot/pipeline.py`, `bot/commands.py`, `config/sources.yaml`, `tests/test_safeguards.py`, `CHANGELOG.md`.
+
 ## v1.4
 - Nonaktifkan GDELT (selalu timeout dari server GitHub dan memperlambat siklus).
 - File: `config/sources.yaml`, `CHANGELOG.md` (baru).
