@@ -2,6 +2,12 @@
 
 Setiap versi mencantumkan file yang berubah, supaya mudah menimpa file yang tepat di repo.
 
+## v1.10 - Batas panggilan API
+- Tiap sumber bisa diberi jeda minimum, batas per hari, dan jam aktif (WIB) di `config/sources.yaml`; GNews, NewsData, dan Guardian API sudah diatur agar tidak kena limit walau workflow berjalan tiap 1-2 menit.
+- Jika API gratis menjawab kuota habis (402/403/429), sumber itu istirahat sampai pergantian hari UTC dan tidak dihitung sebagai gagal.
+- Pencarian Google News diberi jeda 3 menit.
+- File: `bot/sources.py`, `config/sources.yaml`, `tests/test_v110.py` (baru), `CHANGELOG.md`.
+
 ## v1.9 - Pengurai Google News dan daftar jurnalis
 - Tautan Google News diurai menjadi alamat artikel asli (pustaka gratis, opsional) agar isi artikel, nama jurnalis, dan tanggal terbit bisa terbaca; gagal = perilaku lama.
 - Daftar jurnalis bertambah 16 nama (James Ducker, Sam Wallace, Jason Burt, Rich Fay, Craig Hope, Alex Crook, Andy Mitten, Miguel Delaney, Ian Irving, Oliver Kay, Daniel Taylor, John Cross, Rob Harris, Graeme Bailey, Simon Peach, Indy Kaila).
