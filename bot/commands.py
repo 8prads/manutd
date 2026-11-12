@@ -15,7 +15,8 @@ HELP = (
     "/sumber - daftar sumber bermasalah beserta penyebabnya\n"
     "/terakhir - 5 berita terakhir (sumber dan tanggal terbit)\n"
     "/opini - balas (quote) sebuah berita lalu kirim /opini untuk draf opini berpov Anda; "
-    "tambahkan arah opini bila perlu, mis. /opini Carrick perlu diberi waktu\n"
+    "tambahkan arah atau panjang bila perlu, mis. /opini singkat Carrick perlu diberi waktu "
+    "(pilihan panjang: singkat, panjang, atau 3 kalimat)\n"
     "/pengingat - lihat atau ubah tanggal pengingat\n\n"
     "Perintah dibaca setiap siklus (sekitar 5 menit)."
 )

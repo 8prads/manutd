@@ -1,5 +1,6 @@
 """Perintah /opini: buat draf opini berpov pemilik akun dari berita yang di-quote di Telegram."""
 import html
+import re
 
 from . import llm
 
@@ -9,7 +10,7 @@ Tulis dari sudut pandang pemilik akun (kata ganti orang pertama, misalnya "menur
 Gaya:
 - Bahasa Indonesia yang natural, tegas, dan enak dibaca, seperti komentator sepak bola. Tidak bertele-tele.
 - Tanpa hashtag, tanpa tag @, tanpa emoji.
-- Panjang bebas sesuai kebutuhan, tetapi hindari pengulangan.
+- Panjang: {panjang}. Hindari pengulangan.
 
 Aturan isi:
 - Bedakan fakta dari berita dengan opini Anda. Jangan mengarang fakta, angka, atau kutipan di luar berita.
@@ -24,6 +25,19 @@ Berita:
 </berita>
 
 Keluarkan hanya teks opininya."""
+
+
+def length_rule(notes):
+    """Panjang opini dari kata kunci di perintah: singkat, panjang, atau 'N kalimat/paragraf'."""
+    n = (notes or "").lower()
+    m = re.search(r"(\d+)\s*(kalimat|paragraf)", n)
+    if m:
+        return f"{m.group(1)} {m.group(2)}"
+    if any(k in n for k in ("singkat", "ringkas", "pendek", "padat")):
+        return "2 sampai 3 kalimat saja (sekitar 40 sampai 60 kata)"
+    if any(k in n for k in ("panjang", "detail", "lengkap", "mendalam")):
+        return "boleh beberapa paragraf (maksimal sekitar 300 kata)"
+    return "1 sampai 2 paragraf pendek (maksimal sekitar 120 kata)"
 
 
 def find_story(state, msg_id):
@@ -60,7 +74,7 @@ def process(jobs, state, cfg, env, tg, pipe, log=print):
             news, names = (q.get("text") or q.get("caption") or "")[:3500], []
         arah = (f"Arah opini dari pemilik akun (ikuti): {j['notes']}" if j["notes"]
                 else "Pemilik akun tidak memberi arah; ambil sudut pandang yang paling masuk akal berdasarkan fakta.")
-        out = llm.generate(cfg, env, PROMPT.format(arah=arah, berita=news), log, finish=llm.clean_free)
+        out = llm.generate(cfg, env, PROMPT.format(arah=arah, panjang=length_rule(j["notes"]), berita=news), log, finish=llm.clean_free)
         if not out:
             tg.send("Opini belum bisa dibuat (layanan AI sedang bermasalah). Coba kirim /opini lagi nanti.", reply_to=j["cmd_id"])
             continue
