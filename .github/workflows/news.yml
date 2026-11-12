@@ -28,7 +28,9 @@ jobs:
           cache: pip
 
       - name: Pasang dependensi
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          pip install googlenewsdecoder || echo "googlenewsdecoder gagal dipasang, lanjut tanpa pengurai Google News"
 
       - name: Jalankan bot
         env:
