@@ -74,6 +74,21 @@ def page_date(raw):
     return None
 
 
+def decode_gn(url, log=print):
+    """Ubah tautan Google News menjadi alamat artikel asli (gratis, tidak resmi). Gagal = kembalikan tautan semula."""
+    if "news.google.com" not in url:
+        return url
+    try:
+        from googlenewsdecoder import gnewsdecoder
+        r = gnewsdecoder(url, interval=1)
+        if r.get("status") and r.get("decoded_url"):
+            return r["decoded_url"]
+        log(f"decode Google News gagal: {str(r.get('message', ''))[:80]}")
+    except Exception as e:
+        log(f"decode Google News error: {type(e).__name__}")
+    return url
+
+
 def fetch_article(url, max_chars):
     """Return (teks, tanggal_terbit_epoch_atau_None)."""
     host = urlparse(url).netloc.lower()
@@ -181,6 +196,7 @@ def make_summarizer(cfg, env, log=print):
     sc, llm = cfg["summary"], cfg["llm"]
     gkey, qkey = env.get("GEMINI_API_KEY"), env.get("GROQ_API_KEY")
     jr = T.build_journalist_re(cfg)
+    decodes_left = [8]  # batas pengurai tautan per siklus agar Google tidak membatasi
 
     def summarize(story):
         if not (gkey or qkey):
@@ -190,6 +206,9 @@ def make_summarizer(cfg, env, log=print):
         pub = None
         if len(content) < 600 or story.get("verify"):
             for src in sorted(story["sources"], key=lambda x: x["tier"])[:2]:
+                if "news.google.com" in src["url"] and decodes_left[0] > 0:
+                    decodes_left[0] -= 1
+                    src["url"] = decode_gn(src["url"], log)
                 txt, pdate = fetch_article(src["url"], sc["max_article_chars"])
                 pub = pub or pdate
                 if len(txt) > len(content):
