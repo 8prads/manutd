@@ -86,6 +86,22 @@ people:
     - Mike Keegan
     - Neil Jones
     - Henry Winter
+    - Indy Kaila
+    - James Ducker
+    - Sam Wallace
+    - Jason Burt
+    - Rich Fay
+    - Craig Hope
+    - Alex Crook
+    - Andy Mitten
+    - Miguel Delaney
+    - Ian Irving
+    - Oliver Kay
+    - Daniel Taylor
+    - John Cross
+    - Rob Harris
+    - Graeme Bailey
+    - Simon Peach
   # Nama panggilan yang juga dikenali di teks berita (dipakai untuk menulis nama jurnalis sebagai sumber)
   journalist_aliases:
     Fabrizio Romano: [Romano]
@@ -98,6 +114,9 @@ people:
     Adam Crafton: [Crafton]
     Jonathan Northcroft: [Northcroft]
     Gianluca Di Marzio: [Di Marzio]
+    James Ducker: [Ducker]
+    Andy Mitten: [Mitten]
+    Indy Kaila: [Kaila]
   pundits:
     - Gary Neville
     - Roy Keane
