@@ -6,6 +6,8 @@
 # Untuk menonaktifkan sumber: tambahkan enabled: false.
 # dedicated: false = berita wajib menyebut Man Utd di judul/cuplikan (untuk pencarian umum).
 # mu_only: true = sumber pasti khusus Man Utd, tidak dicek ulang setelah diringkas.
+# min_interval_minutes / max_per_day / active_hours: batasi seberapa sering sumber (terutama API gratis) dipanggil,
+# supaya tidak kena limit walau workflow sering jalan. active_hours memakai WIB, mis. "12-6" = 12:00 sampai 06:00.
 # quiet: true = sumber opsional, kegagalannya tidak memicu peringatan Telegram.
 # Reddit dinonaktifkan karena Reddit memblokir server GitHub (HTTP 403).
 # GDELT dinonaktifkan karena server GDELT selalu timeout dari GitHub dan memperlambat tiap siklus.
@@ -56,7 +58,7 @@ sources:
   - {id: reddit_reddevils, name: "Reddit", type: reddit, url: "https://www.reddit.com/r/reddevils/hot.json?limit=30&raw_json=1", tier: 2, dedicated: true, enabled: false, quiet: true}
 
   # ---- API gratis ----
-  - {id: guardian_api, name: "The Guardian", type: guardian, key_env: GUARDIAN_API_KEY, tier: 1, dedicated: false}
+  - {id: guardian_api, name: "The Guardian", type: guardian, key_env: GUARDIAN_API_KEY, tier: 1, dedicated: false, min_interval_minutes: 5, max_per_day: 450}
   - {id: gdelt, name: "GDELT", type: gdelt, tier: 3, dedicated: true, enabled: false, quiet: true}
-  - {id: gnews_api, name: "GNews", type: gnews_api, key_env: GNEWS_API_KEY, tier: 3, dedicated: false, quiet: true}
-  - {id: newsdata_api, name: "NewsData", type: newsdata, key_env: NEWSDATA_API_KEY, tier: 3, dedicated: false, quiet: true}
+  - {id: gnews_api, name: "GNews", type: gnews_api, key_env: GNEWS_API_KEY, tier: 3, dedicated: false, quiet: true, min_interval_minutes: 20, max_per_day: 90}
+  - {id: newsdata_api, name: "NewsData", type: newsdata, key_env: NEWSDATA_API_KEY, tier: 3, dedicated: false, quiet: true, min_interval_minutes: 8, max_per_day: 180}
