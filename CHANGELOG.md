@@ -2,6 +2,10 @@
 
 Setiap versi mencantumkan file yang berubah, supaya mudah menimpa file yang tepat di repo.
 
+## v1.8 - Panjang opini
+- `/opini` kini mengenali kata kunci panjang (`singkat`, `panjang`, `N kalimat`); tanpa kata kunci hasilnya 1-2 paragraf pendek, tidak lagi sangat panjang.
+- File: `bot/opini.py`, `bot/commands.py`, `tests/test_v17.py`, `docs/PANDUAN.md`, `CHANGELOG.md`.
+
 ## v1.7 - Gaya jurnalis, sumber jurnalis, /opini
 - Pesan berita jadi laporan singkat bergaya jurnalis; ringkasan yang berkomentar tentang teks ("tidak ada informasi tambahan") ditolak.
 - Sumber menulis nama jurnalis (platform kecil/komunitas diganti nama jurnalis yang dikutip; platform besar tetap).
