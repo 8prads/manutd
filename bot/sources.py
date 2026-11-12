@@ -236,6 +236,37 @@ FETCHERS = {
 }
 
 
+DEFAULT_INTERVAL = {"gnews_rss": 3, "guardian": 5}   # menit; cegah permintaan berlebihan bila workflow sering jalan
+
+
+def _in_hours(spec, now):
+    """spec 'JAM_MULAI-JAM_SELESAI' dalam WIB, mis. '12-6' = 12:00 sampai 06:00 keesokan hari."""
+    a, b = (int(x) for x in str(spec).split("-"))
+    h = (time.gmtime(now).tm_hour + 7) % 24
+    return (a <= h < b) if a < b else (h >= a or h < b)
+
+
+def _next_utc_midnight(now):
+    return (int(now) // 86400 + 1) * 86400
+
+
+def _throttle(src, rec, now):
+    """Alasan sumber dilewati (batas waktu, jam aktif, kuota harian) atau None bila boleh diambil."""
+    if rec.get("blocked_until", 0) > now:
+        return "kuota habis, lanjut besok"
+    if src.get("active_hours") and not _in_hours(src["active_hours"], now):
+        return "di luar jam aktif"
+    interval = src.get("min_interval_minutes", DEFAULT_INTERVAL.get(src["type"]))
+    if interval and now - rec.get("last_fetch", 0) < interval * 60:
+        return "menunggu jeda"
+    day = time.strftime("%Y-%m-%d", time.gmtime(now))
+    if rec.get("day") != day:
+        rec["day"], rec["count"] = day, 0
+    if src.get("max_per_day") and rec["count"] >= src["max_per_day"]:
+        return "batas harian tercapai"
+    return None
+
+
 def fetch_all(sources, state, cfg, env, log=print):
     """Ambil semua sumber paralel. Return (items, hasil) dengan hasil[id] = ('ok'|'gagal'|'lewati', info)."""
     results, items = {}, []
@@ -245,10 +276,20 @@ def fetch_all(sources, state, cfg, env, log=print):
             return src["id"], "lewati", "nonaktif", []
         if src.get("key_env") and not env.get(src["key_env"]):
             return src["id"], "lewati", "tanpa kunci API", []
+        now = time.time()
+        rec = state["feeds"].setdefault(src["id"], {})
+        reason = _throttle(src, rec, now)
+        if reason:
+            return src["id"], "lewati", reason, []
+        rec["last_fetch"], rec["count"] = now, rec.get("count", 0) + 1
         try:
             got = FETCHERS[src["type"]](src, state, cfg, env)
             return src["id"], "ok", len(got), got
         except Exception as e:  # satu sumber gagal tidak boleh menghentikan yang lain
+            code = getattr(getattr(e, "response", None), "status_code", None)
+            if src.get("key_env") and code in (402, 403, 429):
+                rec["blocked_until"] = _next_utc_midnight(now)  # kuota API gratis habis: istirahat sampai besok
+                return src["id"], "lewati", "kuota habis", []
             return src["id"], "gagal", f"{type(e).__name__}: {str(e)[:120]}", []
 
     with ThreadPoolExecutor(max_workers=12) as ex:
