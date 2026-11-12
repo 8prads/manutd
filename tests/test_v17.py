@@ -119,6 +119,25 @@ class TestOpini(unittest.TestCase):
         C.handle(tg, S.new_state(), CFG, "42", log=lambda *a: None)
         self.assertEqual([r for _, r in tg.sent], [21, 22])
 
+    def test_length_rules(self):
+        self.assertIn("2 sampai 3 kalimat", opini.length_rule("jabarkan dengan singkat"))
+        self.assertIn("3 kalimat", opini.length_rule("buat 3 kalimat saja"))
+        self.assertIn("2 paragraf", opini.length_rule("tentang match pertama"))
+        self.assertIn("300 kata", opini.length_rule("panjang dan detail"))
+
+    def test_short_request_reaches_prompt(self):
+        st = S.new_state()
+        tg = RecTG([upd(1, "/opini singkat Carrick perlu waktu", 5, quoted={"message_id": 1, "text": "Carrick diberitakan akan diganti."})])
+        jobs = C.handle(tg, st, CFG, "42", log=lambda *a: None)
+        pipe = tp.Pipeline(CFG, st, tp.FakeTG(), lambda s: "x", now=tp.Clock(), log=lambda *a: None)
+        seen = {}
+        def fake_generate(cfg, env, prompt, log=print, finish=None):
+            seen["p"] = prompt
+            return "Menurut saya Carrick perlu waktu karena hasil belakangan membaik cukup jelas."
+        with mock.patch.object(llm, "generate", fake_generate):
+            opini.process(jobs, st, CFG, {}, tg, pipe)
+        self.assertIn("Panjang: 2 sampai 3 kalimat saja", seen["p"])
+
     def test_long_opinion_split(self):
         parts = opini.split_message("\n\n".join(["a" * 1500] * 4), limit=3800)
         self.assertEqual(len(parts), 2)
