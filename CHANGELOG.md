@@ -2,6 +2,14 @@
 
 Setiap versi mencantumkan file yang berubah, supaya mudah menimpa file yang tepat di repo.
 
+## v1.11 - Berita tertahan
+- Perintah `/menunggu` menampilkan berita yang tertahan beserta alasannya (cooldown, menunggu dukungan, batas per jam).
+- Berita yang tertahan kini dibuang lebih cepat (`expire_minutes` 60, `hold_minutes` 30) agar tidak terkirim saat sudah basi.
+- Hitungan gagal lama untuk sumber yang kini hanya dilewati (mis. kuota API habis) dibersihkan, sehingga `/sumber` dan `/status` tidak menampilkan angka usang.
+- Label: satu sumber berlabel rumor sudah cukup untuk menandai berita sebagai [RUMOR]; "Papers:" dan "paper talk" dianggap rumor; label [BREAKING NEWS] tidak lagi diberikan hanya karena banyak sumber memberitakan rumor.
+- Google News menampilkan The Athletic sebagai "The New York Times"; kini dinamai ulang menjadi The Athletic (`source_aliases`).
+- File: `bot/main.py`, `bot/commands.py`, `bot/pipeline.py`, `bot/text.py`, `bot/sources.py`, `config/settings.yaml`, `README.md`, `docs/PANDUAN.md`, `tests/test_v111.py` (baru), `CHANGELOG.md`.
+
 ## v1.10 - Batas panggilan API
 - Tiap sumber bisa diberi jeda minimum, batas per hari, dan jam aktif (WIB) di `config/sources.yaml`; GNews, NewsData, dan Guardian API sudah diatur agar tidak kena limit walau workflow berjalan tiap 1-2 menit.
 - Jika API gratis menjawab kuota habis (402/403/429), sumber itu istirahat sampai pergantian hari UTC dan tidak dihitung sebagai gagal.
