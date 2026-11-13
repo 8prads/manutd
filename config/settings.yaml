@@ -49,8 +49,8 @@ rate:
 
 trend:
   small_sources_need_support: true   # blog/agregator butuh dukungan sumber lain
-  hold_minutes: 45                   # tunggu dukungan selama ini, jika tidak ada berita dibuang
-  expire_minutes: 120                # berita yang tertahan (cooldown/batas) dibuang setelah ini
+  hold_minutes: 30                   # tunggu dukungan selama ini, jika tidak ada berita dibuang
+  expire_minutes: 60                 # berita yang tertahan (cooldown/batas) dibuang setelah ini
   reddit_min_score: 250
   gdelt_min_domains: 3
 
@@ -150,6 +150,10 @@ big_platforms:
   - talkSPORT
   - Goal
   - Goal.com
+
+# Nama penerbit di Google News yang diganti (mis. The Athletic muncul sebagai The New York Times)
+source_aliases:
+  The New York Times: The Athletic
 
 # Penerbit di Google News yang diabaikan (feed resminya sudah dibaca langsung)
 skip_publishers:
