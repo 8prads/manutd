@@ -44,7 +44,7 @@ Jadwal cadangan dari GitHub (tiap 15 menit) sudah ada di workflow dan aman berja
 
 ## D. Perintah Telegram
 
-`/status` · `/pause` · `/resume` · `/cooldown 15` · `/batas 10` · `/sumber` · `/terakhir` · `/pengingat` · `/opini` · `/bantuan`
+`/status` · `/pause` · `/resume` · `/cooldown 15` · `/batas 10` · `/sumber` · `/terakhir` · `/menunggu` · `/pengingat` · `/opini` · `/bantuan`
 
 **Draf opini:** di Telegram, tekan lama sebuah berita dari bot lalu pilih Reply, ketik `/opini` (boleh ditambah arah opini, misalnya `/opini Carrick perlu diberi waktu`). Atur panjang dengan kata kunci: `singkat` (2-3 kalimat), `3 kalimat`, atau `panjang`; tanpa kata kunci hasilnya 1-2 paragraf pendek, lalu kirim. Dalam satu siklus bot membalas dengan draf opini berpov Anda, mengutip perintah Anda.
 
@@ -60,6 +60,7 @@ Perintah dibaca setiap siklus, jadi balasannya paling lama sekitar 5 menit.
 | Run gagal saat "Simpan state" | Workflow permissions belum *Read and write*. |
 | Ringkasan berbahasa Inggris | Kunci Gemini/Groq salah, atau kuota gratis habis. Bot akan mencoba lagi. |
 | Peringatan "sumber gagal" | Kirim `/sumber` untuk melihat penyebabnya. 403 berarti situs memblokir server GitHub, 404 berarti alamat feed sudah mati. Ganti dengan pencarian Google News per situs (`query: "site:domain.com"`) atau nonaktifkan lewat `config/sources.yaml`. |
+| Banyak berita "menunggu" | Kirim `/menunggu` untuk melihat alasannya (cooldown, menunggu dukungan sumber lain, atau batas per jam). Cooldown yang terlalu panjang (`/cooldown`) paling sering menjadi penyebab; 15 menit adalah default. |
 | Berita lama ikut terkirim | Kirim `/terakhir` untuk melihat sumber dan tanggal terbit lima berita terakhir, lalu laporkan agar aturannya diperketat. |
 | Nama model AI tidak ditemukan | Ubah `llm.gemini_models` atau `llm.groq_models` di `config/settings.yaml`. |
 
