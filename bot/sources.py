@@ -100,6 +100,7 @@ def feed_items(src, entries, cfg, now):
             name = e["source"] or (title.rsplit(" - ", 1)[1] if " - " in title else "Google News")
             if " - " in title:
                 title = title.rsplit(" - ", 1)[0].strip()
+            name = cfg.get("source_aliases", {}).get(name, name)
             if name.strip().lower() in {n.lower() for n in cfg.get("skip_publishers", [])}:
                 continue  # tanggal Google News untuk situs resmi sering tidak akurat; feed resmi sudah dibaca langsung
             tier = _tier_for(name, cfg)

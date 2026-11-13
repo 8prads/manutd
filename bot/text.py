@@ -194,7 +194,8 @@ def facts(text):
 RE_HEDGE = re.compile(
     r"\b(linked|interested|eyeing|eyes|eye|considering|consider|could|may|might|set to|poised|reportedly|claims?|"
     r"understood to|sources?|tipped|target(?:s|ing)?|lined up|in talks|monitoring|keen|plans?|plotting|wants?|"
-    r"open to|prepared to|ready to|close to|nearing|battle|race for|chasing|rumou?rs?)\b", re.I)
+    r"open to|prepared to|ready to|close to|nearing|battle|race for|chasing|rumou?rs?|paper talk|gossip)\b"
+    r"|\bpapers?:", re.I)
 RE_OFFICIAL = re.compile(
     r"\b(official(?:ly)?|club statement|here we go|done deal|completes? (?:the )?(?:signing|transfer|move)|"
     r"announces?|confirm(?:s|ed)? (?:the )?(?:signing|departure|appointment|exit))\b", re.I)

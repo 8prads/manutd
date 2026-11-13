@@ -164,12 +164,16 @@ class Pipeline:
         return len(s["signals"]) >= tr["gdelt_min_domains"]
 
     def _label(self, s):
-        label = max(s["sources"], key=lambda x: T.rank(x["label"]))["label"]
+        labels = [x["label"] for x in s["sources"]]
+        top = max(labels, key=T.rank)
+        if T.rank(top) >= 3:
+            return top  # RESMI atau BREAKING dari salah satu sumber
+        if "RUMOR" in labels:
+            return "RUMOR"  # satu sumber saja yang berhati-hati sudah cukup untuk menandai rumor
         strong = s["journalist"] or self._best_tier(s) == 1
-        if (T.rank(label) < 3 and strong and s["etype"] in T.FACT_TYPES
-                and len({x["name"] for x in s["sources"]}) >= 3):
-            label = "BREAKING NEWS"
-        return label
+        if strong and s["etype"] in T.FACT_TYPES and len({x["name"] for x in s["sources"]}) >= 3:
+            return "BREAKING NEWS"
+        return top
 
     def _priority(self, s):
         unlimited = self._label(s) in self.cfg["rate"]["unlimited_labels"]
@@ -214,6 +218,26 @@ class Pipeline:
         if not body.endswith("."):
             body += "."
         return "(Ringkasan dalam bahasa Inggris karena layanan terjemahan sedang bermasalah.) " + body
+
+    def pending_report(self):
+        """Daftar berita yang menunggu beserta alasannya: (judul, umur_menit, alasan, label)."""
+        now, tr = self.now(), self.cfg["trend"]
+        out = []
+        pend = sorted((s for s in self.st["stories"].values() if s["status"] == "pending"), key=lambda s: s["first_seen"])
+        for s in pend:
+            age = (now - s["first_seen"]) / 60
+            label = self._label(s)
+            topic = self._find_topic(s)
+            if not self._eligible(s):
+                reason = f"menunggu dukungan sumber lain ({max(0, int(tr['hold_minutes'] - age))} mnt lagi sebelum dibuang)"
+            elif topic and now - topic["last_sent"] < self.cooldown_s and not self._bypass(s, label, topic):
+                reason = f"cooldown topik ({int((self.cooldown_s - (now - topic['last_sent'])) / 60) + 1} mnt lagi)"
+            elif label not in self.cfg["rate"]["unlimited_labels"] and self._sent_last_hour() >= self.max_per_hour:
+                reason = "batas pesan per jam tercapai"
+            else:
+                reason = "antre untuk siklus berikutnya"
+            out.append((s["title"], int(age), reason, label))
+        return out
 
     def dispatch(self):
         now = self.now()

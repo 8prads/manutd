@@ -4,6 +4,7 @@ import time
 from datetime import datetime, timedelta, timezone
 
 from . import reminders
+from .pipeline import Pipeline
 
 HELP = (
     "<b>Perintah bot</b>\n\n"
@@ -14,6 +15,7 @@ HELP = (
     "/batas 10 - atur maksimal pesan biasa per jam (1-60)\n"
     "/sumber - daftar sumber bermasalah beserta penyebabnya\n"
     "/terakhir - 5 berita terakhir (sumber dan tanggal terbit)\n"
+    "/menunggu - berita yang tertahan beserta alasannya\n"
     "/opini - balas (quote) sebuah berita lalu kirim /opini untuk draf opini berpov Anda; "
     "tambahkan arah atau panjang bila perlu, mis. /opini singkat Carrick perlu diberi waktu "
     "(pilihan panjang: singkat, panjang, atau 3 kalimat)\n"
@@ -49,6 +51,12 @@ def reply_for(cmd, args, state, cfg, now):
         bad = [f"- {k} ({v['fails']}x): {html.escape(str(v.get('last_error', ''))[:80])}"
                for k, v in state["feeds"].items() if v.get("fails", 0) >= 3]
         return "Sumber bermasalah:\n" + "\n".join(bad) if bad else "Semua sumber sehat."
+    if cmd == "/menunggu":
+        rep = Pipeline(cfg, state, None, None, now=lambda: now).pending_report()
+        if not rep:
+            return "Tidak ada berita yang menunggu."
+        return "<b>Berita menunggu</b>\n\n" + "\n\n".join(
+            f"[{lab}] {html.escape(t[:80])}\n{age} mnt: {html.escape(reason)}" for t, age, reason, lab in rep)
     if cmd == "/terakhir":
         sent = sorted((s for s in state["stories"].values() if s["status"] == "sent"),
                       key=lambda s: s["sent_at"], reverse=True)[:5]

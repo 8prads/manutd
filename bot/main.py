@@ -25,6 +25,8 @@ def update_health(results, state, tg, threshold, quiet=()):
     failed, recovered = [], []
     for sid, (status, info) in results.items():
         if status == "lewati":
+            if sid in state["feeds"]:
+                state["feeds"][sid].update(fails=0, alerted=False)  # bukan kegagalan: bersihkan hitungan lama
             continue
         rec = state["feeds"].setdefault(sid, {})
         if status == "ok":
