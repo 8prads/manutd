@@ -23,6 +23,8 @@ Semua langkah gratis. Total sekitar 20-30 menit.
 4. **Settings → Actions → General → Workflow permissions:** pilih **Read and write permissions**, lalu Save. Ini wajib agar bot bisa menyimpan state.
 5. Tab **Actions → News Bot → Run workflow**. Dalam satu atau dua menit Telegram menerima pesan `[BOT AKTIF]`. Run pertama hanya mencatat berita yang sudah ada, dan berita baru mulai dikirim di siklus berikutnya.
 
+5. **Data pertandingan (opsional, gratis):** ESPN tidak butuh kunci. Untuk cadangan, buat kunci di <https://dashboard.api-football.com> (API-Football) dan <https://www.football-data.org/client/register> (football-data.org), lalu simpan sebagai secret `API_FOOTBALL_KEY` dan `FOOTBALL_DATA_API_KEY`. Setelah itu kirim `/diagnosa` di Telegram untuk melihat penyedia mana yang berfungsi.
+
 ## C. Pemicu cron-job.org (tiap 5 menit)
 
 1. Di GitHub: **Settings (akun) → Developer settings → Personal access tokens → Fine-grained tokens → Generate.**
@@ -45,6 +47,8 @@ Jadwal cadangan dari GitHub (tiap 15 menit) sudah ada di workflow dan aman berja
 ## D. Perintah Telegram
 
 `/status` · `/pause` · `/resume` · `/cooldown 15` · `/batas 10` · `/sumber` · `/terakhir` · `/menunggu` · `/pengingat` · `/opini` · `/bantuan`
+
+**Data dan filter:** `/jadwal` (30 hari ke depan, `/jadwal 14` untuk 14 hari), `/klasemen pl|ucl|uel|laliga|seriea|bundesliga|ligue1`, `/statistik` (pertandingan terakhir), `/diagnosa`. Blokir kata: `/blokir bruno contract` (permanen), `/blokir 120 bruno contract` (30-360 menit), `/buka bruno contract`, `/daftarblokir`. Berita [RESMI] tidak pernah diblokir.
 
 **Draf opini:** di Telegram, tekan lama sebuah berita dari bot lalu pilih Reply, ketik `/opini` (boleh ditambah arah opini, misalnya `/opini Carrick perlu diberi waktu`). Atur panjang dengan kata kunci: `singkat` (2-3 kalimat), `3 kalimat`, atau `panjang`; tanpa kata kunci hasilnya 1-2 paragraf pendek, lalu kirim. Dalam satu siklus bot membalas dengan draf opini berpov Anda, mengutip perintah Anda.
 
