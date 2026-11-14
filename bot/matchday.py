@@ -13,7 +13,8 @@ def _msg(label, body, provider):
 
 
 def _vs(f):
-    return f"{html.escape(f['home'])} vs {html.escape(f['away'])} ({html.escape(f['comp'])})"
+    comp = F.COMP_ID.get(f["comp"], f["comp"])
+    return f"{html.escape(F.short_team(f['home']))} vs {html.escape(F.short_team(f['away']))} ({html.escape(comp)})"
 
 
 def run(tg, state, cfg, now_ts, fixtures_fn=None, lineup_fn=None, log=print):

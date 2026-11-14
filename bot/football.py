@@ -1,5 +1,5 @@
 """Data pertandingan: jadwal, klasemen, statistik, lineup.
-Penyedia dicoba berurutan: ESPN (tidak resmi, tanpa kunci) -> API-Football -> football-data.org."""
+Penyedia dicoba berurutan: ESPN (tidak resmi, tanpa kunci) -> Highlightly -> API-Football -> football-data.org."""
 import html
 import os
 import time
@@ -13,6 +13,8 @@ ESPN = "https://site.api.espn.com/apis/site/v2/sports/soccer"
 ESPN_V2 = "https://site.api.espn.com/apis/v2/sports/soccer"
 APIF = "https://v3.football.api-sports.io"
 FD = "https://api.football-data.org/v4"
+HL = "https://sports.highlightly.net"
+BROWSER_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 MU_ESPN, MU_APIF, MU_FD = 360, 33, 66
 
 # kode: (nama, kode ESPN, id API-Football, kode football-data atau None)
@@ -34,7 +36,8 @@ ESPN_NAMES = {v[1]: v[0] for v in LEAGUES.values()}
 
 def _get(url, headers=None, params=None):
     import requests
-    r = requests.get(url, headers={"User-Agent": "Mozilla/5.0 (compatible; MUFCNewsBot/1.0)", **(headers or {})},
+    ua = BROWSER_UA if "espn.com" in url else "Mozilla/5.0 (compatible; MUFCNewsBot/1.0)"
+    r = requests.get(url, headers={"User-Agent": ua, "Accept": "application/json", **(headers or {})},
                      params=params, timeout=(5, 20))
     r.raise_for_status()
     return r.json()
@@ -48,6 +51,13 @@ def _apif(path, **params):
     if j.get("errors"):
         raise RuntimeError(str(j["errors"])[:120])
     return j
+
+
+def _hl(path, **params):
+    key = os.environ.get("HIGHLIGHTLY_API_KEY")
+    if not key:
+        raise RuntimeError("tanpa kunci HIGHLIGHTLY_API_KEY")
+    return _get(HL + path, {"x-rapidapi-key": key}, params)
 
 
 def _fd(path, **params):
@@ -256,6 +266,99 @@ def parse_fd_standings(j):
     return rows
 
 
+# ---------- Highlightly ----------
+def _flat(items):
+    out = []
+    for x in items or []:
+        out += _flat(x) if isinstance(x, list) else [x]
+    return out
+
+
+def hl_find_match(f):
+    """Cari id pertandingan Man Utd di Highlightly lewat tanggal dan nama tim."""
+    d = datetime.fromtimestamp(f["ts"], timezone.utc).strftime("%Y-%m-%d")
+    for side in ("homeTeamName", "awayTeamName"):
+        j = _hl("/football/matches", date=d, limit=20, **{side: "Manchester United"})
+        for m in (j.get("data") if isinstance(j, dict) else j) or []:
+            names = (m.get("homeTeam", {}).get("name", ""), m.get("awayTeam", {}).get("name", ""))
+            if any("manchester united" in n.lower() for n in names):
+                return m.get("id")
+    return None
+
+
+def parse_hl_lineup(j, mu_home):
+    if isinstance(j, list):
+        j = j[0] if j else {}
+    j = j.get("data", j) if isinstance(j, dict) else {}
+    side = j.get("homeTeam" if mu_home else "awayTeam") or {}
+    xi = [(str(p.get("number", "")), p.get("name", ""), p.get("position", "")) for p in _flat(side.get("startingXI"))]
+    if len(xi) < 11:
+        return None
+    return {"formation": side.get("formation") or "", "xi": xi, "subs": [p.get("name", "") for p in _flat(side.get("substitutes"))]}
+
+
+_HL_STATS = [("possession", "Penguasaan bola"), ("shots on target", "Tepat sasaran"), ("shots total", "Tembakan"),
+             ("total shots", "Tembakan"), ("shots", "Tembakan"), ("corner", "Sepak pojok"), ("foul", "Pelanggaran"),
+             ("yellow", "Kartu kuning"), ("red card", "Kartu merah"), ("expected", "xG")]
+
+
+def parse_hl_stats(j):
+    if isinstance(j, dict):
+        j = j.get("data", j)
+    teams = (j.get("teams") if isinstance(j, dict) else j) or []
+    if len(teams) != 2:
+        return None
+    def norm(t):
+        name = (t.get("team") or {}).get("name") or t.get("name", "")
+        return name, [(str(s.get("name", "")).lower(), s.get("value")) for s in (t.get("statistics") or t.get("stats") or [])]
+    ent = [norm(t) for t in teams]
+    mu = next((e for e in ent if "manchester united" in e[0].lower()), ent[0])
+    op = ent[1] if mu is ent[0] else ent[0]
+    def pick(stats, key):
+        for k, v in stats:
+            if key in k and not (key == "shots" and "on target" in k):
+                return "-" if v is None else str(v)
+        return None
+    rows, used = [], set()
+    for key, label in _HL_STATS:
+        if label in used:
+            continue
+        a, b = pick(mu[1], key), pick(op[1], key)
+        if a is not None:
+            used.add(label)
+            suffix = "%" if label == "Penguasaan bola" and "%" not in a else ""
+            rows.append((label, a + suffix, (b or "-") + (suffix if b and "%" not in b else "")))
+    return {"opp": op[0], "rows": rows} if rows else None
+
+
+# ---------- nama pendek dan format jadwal ----------
+SHORT = {"Manchester United": "Man United", "Manchester City": "Man City", "Brighton & Hove Albion": "Brighton",
+         "Tottenham Hotspur": "Tottenham", "Wolverhampton Wanderers": "Wolves", "Newcastle United": "Newcastle",
+         "West Ham United": "West Ham", "Nottingham Forest": "Nottm Forest", "Leeds United": "Leeds",
+         "Sporting Clube de Portugal": "Sporting CP", "Paris Saint-Germain": "PSG"}
+COMP_ID = {"UEFA Champions League": "Liga Champions", "UEFA Europa League": "Liga Europa", "FA Cup": "Piala FA",
+           "EFL Cup": "Piala Liga", "League Cup": "Piala Liga", "Carabao Cup": "Piala Liga"}
+
+
+def short_team(name):
+    name = (name or "").strip()
+    for k, v in SHORT.items():
+        if name.startswith(k):
+            return v
+    for suf in (" FC", " AFC", " CF"):
+        if name.endswith(suf):
+            name = name[: -len(suf)]
+    return name[4:] if name.startswith("AFC ") else name
+
+
+def fmt_fixture_block(f):
+    d = datetime.fromtimestamp(f["ts"], WIB)
+    opp = f["away"] if f["mu_home"] else f["home"]
+    return (f"<b>{HARI[d.weekday()]} {d.day:02d}/{d.month:02d} · {d.hour:02d}.{d.minute:02d} WIB</b>\n"
+            f"{html.escape(short_team(opp))} · {'KANDANG' if f['mu_home'] else 'TANDANG'}\n"
+            f"{html.escape(COMP_ID.get(f['comp'], f['comp']))}")
+
+
 # ---------- operasi bertingkat ----------
 def _season():
     d = datetime.now(WIB)
@@ -291,21 +394,19 @@ def get_standings(code):
 
 def get_stats():
     """Statistik pertandingan Man Utd terakhir yang sudah selesai: (penyedia, header, hasil)."""
+    _, fx = get_fixtures(0, 14)
+    done = [f for f in fx if f["state"] == "post"]
+    if not done:
+        raise RuntimeError("belum ada pertandingan selesai dalam 14 hari terakhir")
+    f = done[-1]
     def espn():
-        done = [f for f in espn_fixtures([v[1] for v in LEAGUES.values()][:5], 14, 0) if f["state"] == "post"]
-        if not done:
-            return None
-        f = done[-1]
-        res = parse_espn_stats(_espn_summary(f))
-        return (f, res) if res else None
+        return parse_espn_stats(_espn_summary(f)) if f.get("espn_id") and f.get("slug") else None
+    def hl():
+        mid = f.get("hl_id") or hl_find_match(f)
+        return parse_hl_stats(_hl(f"/football/statistics/{mid}")) if mid else None
     def apif():
-        done = [f for f in parse_apif_fixtures(_apif("/fixtures", team=MU_APIF, last=3)) if f["state"] == "post"]
-        if not done:
-            return None
-        f = done[-1]
-        res = parse_apif_stats(_apif("/fixtures/statistics", fixture=f["apif_id"]))
-        return (f, res) if res else None
-    name, (f, res) = chain([("ESPN", espn), ("API-Football", apif)])
+        return parse_apif_stats(_apif("/fixtures/statistics", fixture=f["apif_id"])) if f.get("apif_id") else None
+    name, res = chain([("ESPN", espn), ("Highlightly", hl), ("API-Football", apif)])
     sc = f"{f['score'][0]}-{f['score'][1]}" if f["score"] else "vs"
     return name, f"{f['home']} {sc} {f['away']} ({f['comp']})", res
 
@@ -322,7 +423,15 @@ def get_lineup(f, allow_apif=True):
         d = datetime.fromtimestamp(f["ts"], timezone.utc).strftime("%Y-%m-%d")
         fx = _apif("/fixtures", team=MU_APIF, date=d).get("response", [])
         return parse_apif_lineup(_apif("/fixtures/lineups", fixture=fx[0]["fixture"]["id"])) if fx else None
-    return chain([("ESPN", espn), ("API-Football", apif)])
+    def hl():
+        if not allow_apif or not os.environ.get("HIGHLIGHTLY_API_KEY"):
+            return None
+        mid = f.get("hl_id") or hl_find_match(f)
+        if not mid:
+            return None
+        f["hl_id"] = mid
+        return parse_hl_lineup(_hl(f"/football/lineups/{mid}"), f["mu_home"])
+    return chain([("ESPN", espn), ("Highlightly", hl), ("API-Football", apif)])
 
 
 def diagnose():
@@ -338,8 +447,15 @@ def diagnose():
         except Exception as e:
             season = f"musim berjalan ditolak ({str(e)[:70]})"
         return f"paket {plan}, {req.get('current', '?')}/{req.get('limit_day', '?')} hari ini, {season}"
+    def hl_check():
+        j = _hl("/football/matches", date=datetime.now(timezone.utc).strftime("%Y-%m-%d"), limit=1)
+        plan = j.get("plan") or {}
+        sample = (j.get("data") or [{}])[0]
+        return (f"paket {plan.get('tier', '?')}, {plan.get('requestCount', '?')}/{plan.get('requestLimit', '?')} hari ini; "
+                f"kunci contoh: {','.join(list(sample)[:8]) or '-'}")
     tests = [("ESPN jadwal", lambda: f"{len(espn_fixtures(['eng.1'], 0, 30))} pertandingan PL"),
              ("ESPN klasemen UEL", lambda: f"{len(parse_espn_standings(_get(f'{ESPN_V2}/uefa.europa/standings')))} baris"),
+             ("Highlightly", hl_check),
              ("API-Football", apif_status),
              ("football-data klasemen PL", lambda: f"{len(parse_fd_standings(_fd('/competitions/PL/standings')))} baris")]
     out = []
@@ -355,7 +471,7 @@ def diagnose():
 def fmt_schedule(fixtures, title):
     if not fixtures:
         return f"{title}\n\nBelum ada pertandingan terjadwal yang terbaca."
-    return f"{title}\n\n" + "\n".join(html.escape(fmt_fixture_line(f)) for f in fixtures)
+    return f"{title}\n\n" + "\n\n".join(fmt_fixture_block(f) for f in fixtures)
 
 
 def fmt_standings(title, rows, provider):
