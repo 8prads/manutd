@@ -2,6 +2,12 @@
 
 Setiap versi mencantumkan file yang berubah, supaya mudah menimpa file yang tepat di repo.
 
+## v1.13 - Lineup, statistik, dan jadwal lebih rapi
+- Highlightly ditambahkan sebagai penyedia lineup dan statistik (kunci gratis `HIGHLIGHTLY_API_KEY`); rantai penyedia: ESPN, Highlightly, API-Football. Id pertandingan disimpan agar kuota 100 per hari hemat.
+- `/jadwal` dan jadwal bulanan dirapikan: tiap pertandingan tiga baris (tanggal dan jam WIB, lawan dan kandang/tandang, kompetisi) dengan nama klub dan kompetisi yang dipersingkat.
+- Permintaan ESPN memakai User-Agent browser (sebelumnya 403 dari server GitHub); `/diagnosa` menampilkan Highlightly beserta kuota dan contoh kunci respons.
+- File: `bot/football.py`, `bot/matchday.py`, `.github/workflows/news.yml`, `docs/news.yml`, `docs/PANDUAN.md`, `tests/test_v112.py`, `tests/test_v113.py` (baru), `CHANGELOG.md`.
+
 ## v1.12 - Dua bahasa, data pertandingan, blokir, ringkasan pagi
 - Format pesan: label, isi Indonesia, garis, isi Inggris, "Selengkapnya:" dan tautan, lalu sumber (italic). Satu panggilan AI menghasilkan dua bahasa.
 - Penjaga berita basi: AI menerima waktu terbit dan daftar judul yang sudah dikirim; umur maksimal 4 jam (Google News 1,5 jam); tanggal situs berbayar tetap dicek.
