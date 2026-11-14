@@ -23,7 +23,7 @@ Semua langkah gratis. Total sekitar 20-30 menit.
 4. **Settings → Actions → General → Workflow permissions:** pilih **Read and write permissions**, lalu Save. Ini wajib agar bot bisa menyimpan state.
 5. Tab **Actions → News Bot → Run workflow**. Dalam satu atau dua menit Telegram menerima pesan `[BOT AKTIF]`. Run pertama hanya mencatat berita yang sudah ada, dan berita baru mulai dikirim di siklus berikutnya.
 
-5. **Data pertandingan (opsional, gratis):** ESPN tidak butuh kunci. Untuk cadangan, buat kunci di <https://dashboard.api-football.com> (API-Football) dan <https://www.football-data.org/client/register> (football-data.org), lalu simpan sebagai secret `API_FOOTBALL_KEY` dan `FOOTBALL_DATA_API_KEY`. Setelah itu kirim `/diagnosa` di Telegram untuk melihat penyedia mana yang berfungsi.
+5. **Data pertandingan (opsional, gratis):** jadwal dan klasemen memakai football-data.org (<https://www.football-data.org/client/register>, secret `FOOTBALL_DATA_API_KEY`). Lineup dan statistik memakai Highlightly (<https://highlightly.net>, paket gratis 100 permintaan per hari, secret `HIGHLIGHTLY_API_KEY`). ESPN tidak butuh kunci tetapi sering memblokir server GitHub. API-Football (`API_FOOTBALL_KEY`) paket gratisnya tidak membuka musim berjalan, jadi hanya berguna bila Anda berlangganan. Setelah itu kirim `/diagnosa` di Telegram untuk melihat penyedia mana yang berfungsi.
 
 ## C. Pemicu cron-job.org (tiap 5 menit)
 

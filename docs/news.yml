@@ -43,6 +43,7 @@ jobs:
           NEWSDATA_API_KEY: ${{ secrets.NEWSDATA_API_KEY }}
           API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
           FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
+          HIGHLIGHTLY_API_KEY: ${{ secrets.HIGHLIGHTLY_API_KEY }}
           STATE_PATH: data/state.json
         run: python -m bot.main
 
