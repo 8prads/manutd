@@ -21,4 +21,5 @@ class Item:
     signal_only: bool = False  # hanya penanda tren, tidak dikirim sendiri
     content: str = ""          # teks penuh bila sumber menyediakan
     undated: bool = False      # sumber tidak mencantumkan tanggal terbit
+    max_age_hours: float = 0   # batas umur khusus sumber ini (0 = pakai batas umum)
     mu_only: bool = True       # sumber memang khusus Man Utd (False = hasil pencarian yang bisa nyasar)

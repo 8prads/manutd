@@ -110,7 +110,8 @@ def feed_items(src, entries, cfg, now):
             uid=T.make_uid(link, title), title=title, text=text or title, url=link, source=name,
             source_id=src["id"], tier=tier, published=e["pub"] or now, official=bool(src.get("official")),
             dedicated=src.get("dedicated", True), content=content if len(content) > 600 else "",
-            undated=e["pub"] is None, mu_only=bool(src.get("mu_only", src["type"] != "gnews_rss"))))
+            undated=e["pub"] is None, mu_only=bool(src.get("mu_only", src["type"] != "gnews_rss")),
+            max_age_hours=cfg.get("gnews_max_age_hours", 0) if src["type"] == "gnews_rss" else 0))
     return items
 
 

@@ -1,8 +1,11 @@
 """Inti bot: gabungkan berita sama, terapkan cooldown, batas, lalu kirim."""
+import re
 import time
+from datetime import datetime
 
 from . import text as T
 from .models import IRRELEVANT, STALE
+from .reminders import WIB
 
 
 class Pipeline:
@@ -47,7 +50,6 @@ class Pipeline:
     # ---------- masuk ----------
     def ingest(self, items):
         now, d = self.now(), self.cfg["dedupe"]
-        max_age = self.cfg["max_item_age_hours"] * 3600
         seen = self.st["seen"]
         for it in sorted(items, key=lambda x: x.published):
             if it.uid in seen:
@@ -55,10 +57,13 @@ class Pipeline:
             seen[it.uid] = now
             toks = T.tokens(f"{it.title} {it.text[:300]}")
             self._learn(toks, it)
+            max_age = (it.max_age_hours or self.cfg["max_item_age_hours"]) * 3600
             if not T.is_relevant(it, self.rel) or now - it.published > max_age:
                 continue
             et = T.event_type(f"{it.title} {it.text[:300]}")
             lab = self._item_label(it, et)
+            if lab != "RESMI" and self.blocked(f"{it.title} {it.text}"):
+                continue
             jn = T.find_journalists(f"{it.title} {it.text} {it.content[:4000]}", self.jr)
             if it.journalist and it.source not in jn:
                 jn.insert(0, it.source)
@@ -212,6 +217,36 @@ class Pipeline:
         keys = self.rel[0]
         return bool(keys and keys.search(f"{s['title']} {s['text']} {s.get('content', '')} {extra}"))
 
+    def blocked(self, text):
+        """Frasa blokir yang cocok (semua katanya muncul di teks) atau None."""
+        now, low = self.now(), (text or "").lower()
+        for b in self.st.get("blocks", []):
+            if b.get("until") and b["until"] <= now:
+                continue
+            words = b["phrase"].lower().split()
+            if words and all(re.search(r"\b" + re.escape(w) + r"\b", low) for w in words):
+                return b["phrase"]
+        return None
+
+    def recent_titles(self, hours=48, n=20):
+        """Judul berita yang sudah dikirim, untuk membantu AI mengenali berita ulang/basi."""
+        cut = self.now() - hours * 3600
+        sent = sorted((s for s in self.st["stories"].values() if s["status"] == "sent" and (s["sent_at"] or 0) >= cut),
+                      key=lambda s: s["sent_at"], reverse=True)[:n]
+        return [f"[{datetime.fromtimestamp(s['sent_at'], WIB).strftime('%d/%m %H.%M')} WIB] {s['title']}" for s in sent]
+
+    @staticmethod
+    def _best_link(s):
+        order = sorted(enumerate(s["sources"]), key=lambda p: (p[1]["tier"], p[0]))
+        return order[0][1]["url"] if order else ""
+
+    def _fallback_texts(self, s):
+        sentences = [x.strip() for x in (s["text"] or s["title"]).replace("\n", " ").split(". ") if x.strip()]
+        en = ". ".join(sentences[:3]) or s["title"]
+        if not en.endswith("."):
+            en += "."
+        return "(Terjemahan belum tersedia karena layanan AI sedang bermasalah.)", en
+
     def _fallback_body(self, s):
         sentences = [x.strip() for x in (s["text"] or s["title"]).replace("\n", " ").split(". ") if x.strip()]
         body = ". ".join(sentences[:3]) or s["title"]
@@ -260,13 +295,17 @@ class Pipeline:
                 continue
             if label not in unlimited and self._sent_last_hour() >= self.max_per_hour:
                 continue
-            body = self.summarize(s)
-            if body in (STALE, IRRELEVANT):
-                s["status"], s["drop"] = "dropped", "basi" if body == STALE else "tidak relevan"
+            if label != "RESMI" and self.blocked(f"{s['title']} {s['text']}"):
+                s["status"], s["drop"] = "dropped", "diblokir"
+                continue
+            raw = self.summarize(s)
+            if raw in (STALE, IRRELEVANT):
+                s["status"], s["drop"] = "dropped", "basi" if raw == STALE else "tidak relevan"
                 self.log(f"dibuang ({s['drop']}): {s['title'][:70]}")
                 continue
+            body, en = T.split_bilingual(raw)
             if (not body and not self._mentions_mu(s)) or (
-                    not s.get("mu_only", True) and not self._mentions_mu(s, body or "")):
+                    not s.get("mu_only", True) and not self._mentions_mu(s, f"{body} {en}")):
                 # Hasil pencarian umum wajib menyebut Man Utd di judul, teks, atau ringkasan
                 s["status"], s["drop"] = "dropped", "tidak relevan"
                 self.log(f"dibuang (tidak menyebut Man Utd): {s['title'][:70]}")
@@ -275,11 +314,15 @@ class Pipeline:
                 s["retries"] += 1
                 if s["retries"] <= self.cfg["summary"]["retry_cycles"]:
                     continue
-                body = self._fallback_body(s)
-            mid = self.tg.send(T.format_message(label, body, self.source_names(s)))
+                body, en = self._fallback_texts(s)
+            if label != "RESMI" and self.blocked(f"{s['title']} {s['text']} {body} {en}"):
+                s["status"], s["drop"] = "dropped", "diblokir"
+                continue
+            link = self._best_link(s)
+            mid = self.tg.send(T.format_message(label, body, self.source_names(s), en, link))
             if mid is None:
                 continue
-            s.update(status="sent", msg_id=mid, body=body, label=label, sent_at=now, needs_edit=False)
+            s.update(status="sent", msg_id=mid, body=body, body_en=en, link=link, label=label, sent_at=now, needs_edit=False)
             self._record_topic(s, label)
             if label not in unlimited:
                 self.st["sent_log"].append(now)
@@ -290,7 +333,8 @@ class Pipeline:
     def refresh_edits(self):
         for s in self.st["stories"].values():
             if s["status"] == "sent" and s["needs_edit"]:
-                self.tg.edit(s["msg_id"], T.format_message(s["label"], s["body"], self.source_names(s)))
+                self.tg.edit(s["msg_id"], T.format_message(s["label"], s["body"], self.source_names(s),
+                                                           s.get("body_en", ""), s.get("link", "")))
                 s["needs_edit"] = False
                 s["edits"] += 1
 
@@ -303,4 +347,5 @@ class Pipeline:
         st["stories"] = {k: s for k, s in st["stories"].items()
                          if now - s["first_seen"] < keep or s["status"] == "pending"}
         st["topics"] = [t for t in st["topics"] if now - t["last_sent"] < 10800]
+        st["blocks"] = [b for b in st.get("blocks", []) if not b.get("until") or b["until"] > now]
         st["sent_log"] = [t for t in st["sent_log"] if now - t < 7200]

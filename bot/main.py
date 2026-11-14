@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-from . import commands, opini, reminders, state as S
+from . import commands, digest, llm, matchday, opini, reminders, state as S
 from .llm import make_summarizer
 from .pipeline import Pipeline
 from .sources import fetch_all
@@ -55,7 +55,9 @@ def main():
     state = S.load(path)
     tg = Telegram(env.get("TELEGRAM_BOT_TOKEN", ""), env.get("TELEGRAM_CHAT_ID", ""), dry=dry)
 
-    pipe = Pipeline(cfg, state, tg, make_summarizer(cfg, env), log=print)
+    llm.STATS = state.setdefault("ai", {})
+    pipe = Pipeline(cfg, state, tg, None, log=print)
+    pipe.summarize = make_summarizer(cfg, env, history=pipe.recent_titles)
     jobs = commands.handle(tg, state, cfg, env.get("TELEGRAM_CHAT_ID", ""))
     if jobs:
         opini.process(jobs, state, cfg, env, tg, pipe)
@@ -68,6 +70,13 @@ def main():
 
     active = {x["id"] for x in srcs if x.get("enabled") is not False}
     state["feeds"] = {k: v for k, v in state["feeds"].items() if k in active}
+    for name, job in (("ringkasan pagi", lambda: digest.run(tg, state, cfg, time.time(), pipe)),
+                      ("pengingat pertandingan", lambda: matchday.run(tg, state, cfg, time.time()))):
+        try:
+            job()
+        except Exception as e:  # fitur tambahan tidak boleh menghentikan pengiriman berita
+            print(f"{name} gagal: {type(e).__name__}: {str(e)[:120]}")
+
     items, results = fetch_all(srcs, state, cfg, env)
     quiet = {x["id"] for x in srcs if x.get("quiet")}
     update_health(results, state, tg, cfg["health"]["alert_after_failures"], quiet)

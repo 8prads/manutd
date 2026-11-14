@@ -8,7 +8,7 @@ def new_state():
         "version": 1, "init": False, "paused": False, "override": {},
         "tg_offset": 0, "seen": {}, "df": {}, "n_docs": 0,
         "stories": {}, "topics": [], "caps": {}, "sent_log": [], "feeds": {},
-        "last_run": 0, "runs": 0, "reminders_sent": {}, "reminder_dates": {},
+        "last_run": 0, "runs": 0, "reminders_sent": {}, "reminder_dates": {}, "blocks": [], "ai": {}, "matchday": {}, "digest_day": "",
     }
 
 

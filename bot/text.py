@@ -244,13 +244,37 @@ def classify(title, text, official, strong_source, sources_count, etype, pundit_
 
 
 # ---------- Format pesan Telegram ----------
-def format_message(label, body, sources):
-    body = (body or "").strip()
-    if len(body) > 3600:
-        cut = body[:3600]
-        body = cut[: cut.rfind(". ") + 1] if ". " in cut else cut
+DIVIDER = "──────────"
+BILINGUAL_SEP = "###ENGLISH###"
+
+
+def split_bilingual(raw):
+    """Pisahkan keluaran AI menjadi (Indonesia, Inggris). Tanpa penanda, Inggris kosong."""
+    raw = raw or ""
+    if BILINGUAL_SEP in raw:
+        a, b = raw.split(BILINGUAL_SEP, 1)
+        return a.strip(), b.strip()
+    return raw.strip(), ""
+
+
+def _cut(text, limit):
+    if len(text) <= limit:
+        return text
+    cut = text[:limit]
+    return cut[: cut.rfind(". ") + 1] if ". " in cut else cut
+
+
+def format_message(label, body, sources, en="", link=""):
+    """[LABEL] / isi Indonesia / garis / isi Inggris / Selengkapnya: tautan / (sumber)."""
     esc = html.escape
-    return f"<b>[{esc(label)}]</b>\n\n{esc(body)}\n\n<i>({esc(', '.join(sources))})</i>"
+    body, en = _cut((body or "").strip(), 1700), _cut((en or "").strip(), 1700)
+    parts = [f"<b>[{esc(label)}]</b>", "", esc(body)]
+    if en:
+        parts += [DIVIDER, esc(en)]
+    if link:
+        parts += ["", "Selengkapnya:", esc(link)]
+    parts += ["", f"<i>({esc(', '.join(sources))})</i>"]
+    return "\n".join(parts)
 
 
 # ---------- Jurnalis ----------

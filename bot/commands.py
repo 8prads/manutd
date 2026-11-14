@@ -16,12 +16,24 @@ HELP = (
     "/sumber - daftar sumber bermasalah beserta penyebabnya\n"
     "/terakhir - 5 berita terakhir (sumber dan tanggal terbit)\n"
     "/menunggu - berita yang tertahan beserta alasannya\n"
+    "/blokir 120 kata - blokir kata 30-360 menit (tanpa angka = permanen); /buka kata; /daftarblokir\n"
+    "/jadwal - jadwal 30 hari ke depan; /klasemen pl|ucl|uel|laliga|seriea|bundesliga|ligue1; /statistik - pertandingan terakhir\n"
+    "/diagnosa - uji sumber data pertandingan\n"
     "/opini - balas (quote) sebuah berita lalu kirim /opini untuk draf opini berpov Anda; "
     "tambahkan arah atau panjang bila perlu, mis. /opini singkat Carrick perlu diberi waktu "
     "(pilihan panjang: singkat, panjang, atau 3 kalimat)\n"
     "/pengingat - lihat atau ubah tanggal pengingat\n\n"
     "Perintah dibaca setiap siklus (sekitar 5 menit)."
 )
+
+
+def _ai_line(state):
+    a = state.get("ai") or {}
+    if not any(k != "day" for k in a):
+        return "AI hari ini: belum ada panggilan"
+    return (f"AI hari ini: Gemini {a.get('gemini_ok', 0)} ok/{a.get('gemini_fail', 0)} gagal; "
+            f"Groq {a.get('groq_ok', 0)} ok/{a.get('groq_fail', 0)} gagal; "
+            f"tautan Google News {a.get('decode_ok', 0)} terurai/{a.get('decode_fail', 0)} gagal")
 
 
 def _wib(ts):
@@ -51,6 +63,54 @@ def reply_for(cmd, args, state, cfg, now):
         bad = [f"- {k} ({v['fails']}x): {html.escape(str(v.get('last_error', ''))[:80])}"
                for k, v in state["feeds"].items() if v.get("fails", 0) >= 3]
         return "Sumber bermasalah:\n" + "\n".join(bad) if bad else "Semua sumber sehat."
+    if cmd == "/blokir":
+        minutes = None
+        if args and args[0].isdigit():
+            minutes, args = int(args[0]), args[1:]
+            if not 30 <= minutes <= 360:
+                return "Durasi harus 30-360 menit. Contoh: /blokir 120 bruno contract"
+        phrase = " ".join(args).lower().strip()
+        if not phrase:
+            return "Tulis kata yang diblokir. Contoh: /blokir bruno contract (permanen) atau /blokir 120 bruno contract"
+        blocks = state.setdefault("blocks", [])
+        blocks[:] = [b for b in blocks if b["phrase"] != phrase]
+        if len(blocks) >= 50:
+            return "Daftar blokir penuh (maksimal 50). Hapus dengan /buka kata."
+        blocks.append({"phrase": phrase, "until": now + minutes * 60 if minutes else None})
+        return f"Diblokir: {html.escape(phrase)} ({'permanen' if not minutes else f'{minutes} menit'}). Berita [RESMI] tetap dikirim."
+    if cmd == "/buka":
+        phrase = " ".join(args).lower().strip()
+        blocks = state.setdefault("blocks", [])
+        before = len(blocks)
+        blocks[:] = [b for b in blocks if b["phrase"] != phrase]
+        return "Blokir dibuka." if len(blocks) < before else "Frasa itu tidak ada di daftar. Lihat /daftarblokir."
+    if cmd == "/daftarblokir":
+        act = [b for b in state.get("blocks", []) if not b.get("until") or b["until"] > now]
+        if not act:
+            return "Tidak ada kata yang diblokir."
+        return "<b>Daftar blokir</b>\n" + "\n".join(
+            f"- {html.escape(b['phrase'])} ({'permanen' if not b.get('until') else f'{int((b['until'] - now) / 60) + 1} menit lagi'})" for b in act)
+    if cmd in ("/jadwal", "/klasemen", "/statistik", "/diagnosa"):
+        from . import football as F
+        try:
+            if cmd == "/diagnosa":
+                return "<b>Diagnosa sumber data</b>\n" + "\n".join(html.escape(x) for x in F.diagnose())
+            if cmd == "/jadwal":
+                days = int(args[0]) if args and args[0].isdigit() else 30
+                prov, fx = F.get_fixtures(min(max(days, 1), 60))
+                cut = now + min(max(days, 1), 60) * 86400
+                fx = [f for f in fx if now - 600 <= f["ts"] <= cut and f["state"] == "pre"]
+                return F.fmt_schedule(fx, f"<b>Jadwal {min(max(days, 1), 60)} hari ke depan</b>") + f"\n\n<i>({prov})</i>"
+            if cmd == "/klasemen":
+                code = (args[0] if args else "pl").lower()
+                if code not in F.LEAGUES:
+                    return "Kode tersedia: " + ", ".join(F.LEAGUES)
+                prov, title, rows = F.get_standings(code)
+                return F.fmt_standings(title, rows, prov)
+            prov, header, res = F.get_stats()
+            return F.fmt_stats(header, res, prov)
+        except Exception as e:
+            return "Data belum bisa diambil: " + html.escape(str(e)[:300]) + "\nCoba /diagnosa untuk melihat penyebabnya."
     if cmd == "/menunggu":
         rep = Pipeline(cfg, state, None, None, now=lambda: now).pending_report()
         if not rep:
@@ -77,7 +137,7 @@ def reply_for(cmd, args, state, cfg, now):
                 f"Terkirim 24 jam: {sent}\nMenunggu: {pend}\n"
                 f"Cooldown: {ov.get('cooldown_minutes', cfg['cooldown']['minutes'])} menit\n"
                 f"Batas: {ov.get('max_per_hour', cfg['rate']['max_per_hour'])} pesan/jam\n"
-                f"Sumber bermasalah: {bad}")
+                f"Sumber bermasalah: {bad}\n{_ai_line(state)}")
     return None
 
 
