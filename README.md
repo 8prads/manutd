@@ -19,11 +19,14 @@ Mengumpulkan puluhan sumber, menyaring berita ganda, meringkasnya ke bahasa Indo
 - **Anti-ganda**: berita yang sama dari banyak sumber hanya dikirim sekali. Sumber tambahan digabung ke pesan lama dengan mengedit pesan itu.
 - **Cooldown topik**: topik yang baru dikirim ditahan selama 15 menit (default). Kabar yang naik tingkat, misalnya rumor menjadi resmi, tetap langsung lewat.
 - **Filter tren**: berita dari blog baru dikirim jika didukung sumber lain atau ramai di Reddit.
-- **Laporan singkat bergaya jurnalis** berbahasa Indonesia: kalimat pendek dan padat tanpa membuang poin penting (Gemini, dengan Groq sebagai cadangan).
+- **Laporan singkat bergaya jurnalis** dalam dua bahasa (Indonesia dan Inggris) dengan tautan sumber: kalimat pendek dan padat tanpa membuang poin penting (Gemini, dengan Groq sebagai cadangan).
+- **Penjaga berita basi**: tanggal diverifikasi, dan AI membandingkan dengan berita yang sudah dikirim agar berita ulang atau usang tidak ikut terkirim.
+- **Data pertandingan**: `/jadwal`, `/klasemen` (PL, UCL, UEL, dan liga lain), `/statistik`, pengingat H-1 dan 1 jam sebelum kick-off, lineup resmi, peringatan jadwal berubah, serta jadwal bulanan otomatis (ESPN, API-Football, football-data.org).
+- **Ringkasan pagi** berita terpenting 24 jam terakhir dan **blokir kata** (permanen atau berjangka).
 - **Sumber ditulis jurnalisnya**: platform besar tetap ditulis namanya, sedangkan platform kecil atau komunitas diganti nama jurnalis yang dikutip (Romano, Ornstein, Whitwell, dll.).
 - **Draf opini berpov Anda**: balas (quote) sebuah berita, kirim `/opini`, dan bot membalas dengan draf opini.
 - **Pelabelan otomatis**: `[BREAKING NEWS]`, `[RESMI]`, `[RUMOR]`, `[TRANSFER]`, `[CEDERA]`, `[INTERVIEW]`, `[PUNDIT]`, `[DRAMA]`, `[PERTANDINGAN]`, `[BERITA]`.
-- **Kontrol lewat Telegram**: `/status`, `/pause`, `/resume`, `/cooldown`, `/batas`, `/sumber`, `/terakhir`, `/menunggu`, `/pengingat`, `/opini`. Semua balasan bot mengutip perintah Anda.
+- **Kontrol lewat Telegram**: `/status`, `/pause`, `/resume`, `/cooldown`, `/batas`, `/sumber`, `/terakhir`, `/menunggu`, `/pengingat`, `/opini`, `/blokir`, `/jadwal`, `/klasemen`, `/statistik`, `/diagnosa`. Semua balasan bot mengutip perintah Anda.
 - **Pengingat terjadwal**: mis. masa berlaku token GitHub, dikirim beberapa hari sebelum kedaluwarsa.
 - **Peringatan kesehatan**: sumber yang mati dilaporkan dalam satu pesan gabungan, dan run yang gagal diberi tahu ke Telegram.
 - **Penjaga berita basi dan tidak relevan**: tanggal terbit diverifikasi dari halaman artikel, dan AI diminta menandai berita lama atau yang tidak berkaitan dengan Man Utd sehingga tidak ikut terkirim.

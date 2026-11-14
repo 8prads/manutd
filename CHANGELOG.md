@@ -2,6 +2,14 @@
 
 Setiap versi mencantumkan file yang berubah, supaya mudah menimpa file yang tepat di repo.
 
+## v1.12 - Dua bahasa, data pertandingan, blokir, ringkasan pagi
+- Format pesan: label, isi Indonesia, garis, isi Inggris, "Selengkapnya:" dan tautan, lalu sumber (italic). Satu panggilan AI menghasilkan dua bahasa.
+- Penjaga berita basi: AI menerima waktu terbit dan daftar judul yang sudah dikirim; umur maksimal 4 jam (Google News 1,5 jam); tanggal situs berbayar tetap dicek.
+- Data pertandingan: `/jadwal`, `/klasemen`, `/statistik`, `/diagnosa`; pengingat H-1 dan 1 jam sebelum kick-off, lineup resmi, peringatan jadwal berubah, jadwal bulanan otomatis tiap tanggal 1.
+- Ringkasan pagi 07.00 WIB; `/blokir`, `/buka`, `/daftarblokir`; `/status` menampilkan hitungan AI dan pengurai tautan Google News.
+- Gemini: waktu berpikir dikurangi dan batas waktu 30 detik.
+- File: `bot/football.py` (baru), `bot/matchday.py` (baru), `bot/digest.py` (baru), `bot/llm.py`, `bot/text.py`, `bot/models.py`, `bot/pipeline.py`, `bot/state.py`, `bot/sources.py`, `bot/commands.py`, `bot/main.py`, `config/settings.yaml`, `.github/workflows/news.yml`, `docs/news.yml`, `README.md`, `docs/PANDUAN.md`, `tests/test_v112.py` (baru), `tests/test_integration.py`, `tests/test_safeguards.py`, `CHANGELOG.md`.
+
 ## v1.11 - Berita tertahan
 - Perintah `/menunggu` menampilkan berita yang tertahan beserta alasannya (cooldown, menunggu dukungan, batas per jam).
 - Berita yang tertahan kini dibuang lebih cepat (`expire_minutes` 60, `hold_minutes` 30) agar tidak terkirim saat sudah basi.
