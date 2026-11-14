@@ -5,7 +5,10 @@
 # ============================================================
 
 # Berita yang lebih tua dari ini diabaikan (jam)
-max_item_age_hours: 6
+max_item_age_hours: 4
+
+# Tanggal Google News sering tidak akurat, jadi umur maksimalnya dibuat lebih pendek (jam)
+gnews_max_age_hours: 1.5
 
 filter:
   # Berita dari feed umum hanya lolos jika memuat salah satu kata ini
@@ -276,3 +279,19 @@ mu_names:
   - Tynan Thompson
   - Diego Leon
   - Cristian Orozco
+
+# Ringkasan pagi: berita terpenting 24 jam terakhir (WIB)
+digest:
+  hour_wib: 7
+  top: 8
+
+# Data pertandingan (jadwal, klasemen, statistik, lineup). Penyedia dicoba berurutan:
+# ESPN (tidak resmi, tanpa kunci) -> API-Football (API_FOOTBALL_KEY) -> football-data.org (FOOTBALL_DATA_API_KEY)
+football:
+  espn_team_id: 360
+  api_football_team_id: 33
+  football_data_team_id: 66
+  competitions_espn: [eng.1, uefa.champions, uefa.europa, eng.fa, eng.league_cup]
+  refresh_hours: 3             # seberapa sering jadwal diperbarui
+  monthly_hour_wib: 7          # jadwal bulanan otomatis tiap tanggal 1 pada jam ini
+  lineup_start_minutes: 90     # mulai mengecek lineup sekian menit sebelum kick-off
