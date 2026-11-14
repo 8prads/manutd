@@ -188,7 +188,7 @@ class TestFootballParsers(unittest.TestCase):
         fx = [{**F.parse_espn_events(ESPN_SB, "eng.1")[0], "ts": now + 86400}]
         with mock.patch.object(F, "get_fixtures", return_value=("ESPN", fx)):
             out = C.reply_for("/jadwal", ["7"], st, CFG, now)
-        self.assertIn("KANDANG vs Arsenal", out)
+        self.assertIn("Arsenal · KANDANG", out)
 
 
 class TestMatchday(unittest.TestCase):
