@@ -128,7 +128,7 @@ class TestSafeguards(unittest.TestCase):
         ok = ("ok", 1)
         env = {"DRY_RUN": "1", "STATE_PATH": path}
         summ = lambda s: "Ringkasan berita Manchester United yang cukup panjang untuk lolos pembersihan."
-        with mock.patch.dict(os.environ, env), mock.patch("builtins.print") as pr, \
+        with mock.patch.dict(os.environ, env), mock.patch("builtins.print") as pr, mock.patch.object(M.matchday, "run"), \
                 mock.patch.object(M, "make_summarizer", return_value=summ), \
                 mock.patch.object(M, "load_yaml", side_effect=lambda n: CFG if n == "settings.yaml" else
                                   {"sources": [{"id": "BBC Sport", "name": "BBC Sport", "type": "rss"},

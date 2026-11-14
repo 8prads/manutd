@@ -25,7 +25,7 @@ class TestIntegration(unittest.TestCase):
         new1 = it("Casemiro agrees new contract", "BBC Sport", 1, "Manchester United midfielder Casemiro has agreed new terms.")
         new2 = it("Casemiro signs contract extension", "Sky Sports", 1, "Manchester United have tied down Casemiro with an extension.")
         ok = {"bbc": ("ok", 1)}
-        with mock.patch.dict(os.environ, env), mock.patch("builtins.print") as pr:
+        with mock.patch.dict(os.environ, env), mock.patch("builtins.print") as pr, mock.patch.object(M.matchday, "run"):
             with mock.patch.object(M, "fetch_all", return_value=([old], ok)):
                 M.main()
             self.assertTrue(S.load(path)["init"])
