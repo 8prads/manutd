@@ -119,28 +119,46 @@ def parse_espn_events(j, slug):
         by = {c.get("homeAway"): c for c in cps}
         if "home" not in by or "away" not in by:
             continue
-        score = None
-        try:
-            score = (int(by["home"]["score"]), int(by["away"]["score"]))
-        except (KeyError, ValueError, TypeError):
-            pass
-        out.append(_fx(_ts(ev.get("date", "")), ESPN_NAMES.get(slug, slug), by["home"]["team"]["displayName"],
-                       by["away"]["team"]["displayName"], (comp.get("venue") or {}).get("fullName"),
-                       ev.get("status", {}).get("type", {}).get("state", "pre"), score, ev.get("id"), slug))
+        out.append(_fx(_ts(ev.get("date", "")), ESPN_NAMES.get(slug, slug), _espn_name(by["home"]), _espn_name(by["away"]),
+                       (comp.get("venue") or {}).get("fullName"),
+                       (comp.get("status") or ev.get("status") or {}).get("type", {}).get("state", "pre"),
+                       _espn_score(by), ev.get("id"), slug))
     return out
+
+
+def _espn_name(c):
+    t = c.get("team") or {}
+    return t.get("displayName") or t.get("name") or t.get("shortDisplayName") or "?"
+
+
+def _espn_score(by):
+    try:
+        v = lambda c: (c["score"].get("displayValue") or c["score"].get("value")) if isinstance(c["score"], dict) else c["score"]
+        return int(float(v(by["home"]))), int(float(v(by["away"])))
+    except (KeyError, ValueError, TypeError):
+        return None
+
+
+parse_espn_schedule = parse_espn_events  # jadwal tim memakai struktur peristiwa yang sama
 
 
 def espn_fixtures(slugs, days_back, days_fwd):
     now = datetime.now(timezone.utc)
+    lo, hi = (now - timedelta(days=days_back)).timestamp(), (now + timedelta(days=days_fwd)).timestamp()
     rng = f"{(now - timedelta(days=days_back)):%Y%m%d}-{(now + timedelta(days=days_fwd)):%Y%m%d}"
-    out, errs = [], 0
+    out, errs = [], []
     for slug in slugs:
         try:
-            out += parse_espn_events(_get(f"{ESPN}/{slug}/scoreboard", params={"dates": rng, "limit": 400}), slug)
-        except Exception:
-            errs += 1
-    if errs == len(slugs):
-        raise RuntimeError("semua kompetisi gagal")
+            out += parse_espn_events(_get(f"{ESPN}/{slug}/scoreboard", params={"dates": rng}), slug)
+            continue
+        except Exception as e:
+            err = f"{slug} papan skor: {type(e).__name__} {str(e)[:50]}"
+        try:  # cadangan: jadwal musim milik tim
+            out += [f for f in parse_espn_events(_get(f"{ESPN}/{slug}/teams/{MU_ESPN}/schedule"), slug) if lo <= f["ts"] <= hi]
+        except Exception as e:
+            errs.append(f"{err}; jadwal tim: {type(e).__name__} {str(e)[:50]}")
+    if len(errs) == len(slugs):
+        raise RuntimeError(" | ".join(errs[:2]))
     return sorted(out, key=lambda f: f["ts"])
 
 
@@ -274,15 +292,30 @@ def _flat(items):
     return out
 
 
-def hl_find_match(f):
+def _shape(j):
+    """Ringkasan bentuk JSON untuk pesan galat, mis. 'dict: matchId,teams' atau 'list[2]: team,statistics'."""
+    if isinstance(j, dict):
+        return "dict: " + ",".join(list(j)[:8])
+    if isinstance(j, list):
+        return f"list[{len(j)}]: " + (",".join(list(j[0])[:8]) if j and isinstance(j[0], dict) else "")
+    return type(j).__name__
+
+
+def hl_find_match(f, info=None, wide=False):
     """Cari id pertandingan Man Utd di Highlightly lewat tanggal dan nama tim."""
-    d = datetime.fromtimestamp(f["ts"], timezone.utc).strftime("%Y-%m-%d")
-    for side in ("homeTeamName", "awayTeamName"):
-        j = _hl("/football/matches", date=d, limit=20, **{side: "Manchester United"})
-        for m in (j.get("data") if isinstance(j, dict) else j) or []:
-            names = (m.get("homeTeam", {}).get("name", ""), m.get("awayTeam", {}).get("name", ""))
-            if any("manchester united" in n.lower() for n in names):
-                return m.get("id")
+    base = datetime.fromtimestamp(f["ts"], timezone.utc)
+    days = [base] + ([base - timedelta(days=1), base + timedelta(days=1)] if wide else [])
+    for day in days:
+        d = day.strftime("%Y-%m-%d")
+        for side in ("homeTeamName", "awayTeamName"):
+            j = _hl("/football/matches", date=d, limit=20, **{side: "Manchester United"})
+            data = (j.get("data") if isinstance(j, dict) else j) or []
+            if info is not None:
+                info.append(f"{d} {side[:4]}: {len(data)} hasil")
+            for m in data:
+                names = (m.get("homeTeam", {}).get("name", ""), m.get("awayTeam", {}).get("name", ""))
+                if any("manchester united" in n.lower() for n in names):
+                    return m.get("id")
     return None
 
 
@@ -400,12 +433,23 @@ def get_stats():
         raise RuntimeError("belum ada pertandingan selesai dalam 14 hari terakhir")
     f = done[-1]
     def espn():
-        return parse_espn_stats(_espn_summary(f)) if f.get("espn_id") and f.get("slug") else None
+        if not (f.get("espn_id") and f.get("slug")):
+            raise RuntimeError("jadwal berasal dari penyedia lain (tanpa id ESPN)")
+        return parse_espn_stats(_espn_summary(f))
     def hl():
-        mid = f.get("hl_id") or hl_find_match(f)
-        return parse_hl_stats(_hl(f"/football/statistics/{mid}")) if mid else None
+        info = []
+        mid = f.get("hl_id") or hl_find_match(f, info, wide=True)
+        if not mid:
+            raise RuntimeError("pertandingan tidak ditemukan (" + "; ".join(info[:3]) + ")")
+        j = _hl(f"/football/statistics/{mid}")
+        res = parse_hl_stats(j)
+        if not res:
+            raise RuntimeError("statistik kosong atau format tidak dikenali (" + _shape(j) + ")")
+        return res
     def apif():
-        return parse_apif_stats(_apif("/fixtures/statistics", fixture=f["apif_id"])) if f.get("apif_id") else None
+        if not f.get("apif_id"):
+            raise RuntimeError("tanpa id API-Football")
+        return parse_apif_stats(_apif("/fixtures/statistics", fixture=f["apif_id"]))
     name, res = chain([("ESPN", espn), ("Highlightly", hl), ("API-Football", apif)])
     sc = f"{f['score'][0]}-{f['score'][1]}" if f["score"] else "vs"
     return name, f"{f['home']} {sc} {f['away']} ({f['comp']})", res
@@ -426,8 +470,11 @@ def get_lineup(f, allow_apif=True):
     def hl():
         if not allow_apif or not os.environ.get("HIGHLIGHTLY_API_KEY"):
             return None
+        if f.get("hl_miss", 0) > time.time() - 1800:
+            return None  # pencarian id gagal baru-baru ini; jangan boros kuota
         mid = f.get("hl_id") or hl_find_match(f)
         if not mid:
+            f["hl_miss"] = time.time()
             return None
         f["hl_id"] = mid
         return parse_hl_lineup(_hl(f"/football/lineups/{mid}"), f["mu_home"])
@@ -451,11 +498,27 @@ def diagnose():
         j = _hl("/football/matches", date=datetime.now(timezone.utc).strftime("%Y-%m-%d"), limit=1)
         plan = j.get("plan") or {}
         sample = (j.get("data") or [{}])[0]
-        return (f"paket {plan.get('tier', '?')}, {plan.get('requestCount', '?')}/{plan.get('requestLimit', '?')} hari ini; "
-                f"kunci contoh: {','.join(list(sample)[:8]) or '-'}")
+        info = ", ".join(f"{k}={v}" for k, v in plan.items() if k != "tier")[:80] or "kuota tidak dilaporkan"
+        return f"paket {plan.get('tier', '?')}; {info}; kunci contoh: {','.join(list(sample)[:8]) or '-'}"
+    def hl_stats_check():
+        _, fx = get_fixtures(0, 14)
+        done = [x for x in fx if x["state"] == "post"]
+        if not done:
+            return "tidak ada pertandingan selesai dalam 14 hari terakhir"
+        f = done[-1]
+        info = []
+        mid = hl_find_match(f, info, wide=True)
+        if not mid:
+            raise RuntimeError("pertandingan tidak ditemukan (" + "; ".join(info[:3]) + ")")
+        j = _hl(f"/football/statistics/{mid}")
+        res = parse_hl_stats(j)
+        if not res:
+            raise RuntimeError("statistik kosong atau format tidak dikenali (" + _shape(j) + ")")
+        return f"{len(res['rows'])} baris untuk {short_team(f['home'])} vs {short_team(f['away'])}"
     tests = [("ESPN jadwal", lambda: f"{len(espn_fixtures(['eng.1'], 0, 30))} pertandingan PL"),
              ("ESPN klasemen UEL", lambda: f"{len(parse_espn_standings(_get(f'{ESPN_V2}/uefa.europa/standings')))} baris"),
              ("Highlightly", hl_check),
+             ("Highlightly statistik", hl_stats_check),
              ("API-Football", apif_status),
              ("football-data klasemen PL", lambda: f"{len(parse_fd_standings(_fd('/competitions/PL/standings')))} baris")]
     out = []

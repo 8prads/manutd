@@ -19,6 +19,7 @@ HELP = (
     "/blokir 120 kata - blokir kata 30-360 menit (tanpa angka = permanen); /buka kata; /daftarblokir\n"
     "/jadwal - jadwal 30 hari ke depan; /klasemen pl|ucl|uel|laliga|seriea|bundesliga|ligue1; /statistik - pertandingan terakhir\n"
     "/diagnosa - uji sumber data pertandingan\n"
+    "/nama - lihat daftar kata kunci pemain/staf; /nama tambah Hojlund; /nama hapus Rashford; /nama reset\n"
     "/opini - balas (quote) sebuah berita lalu kirim /opini untuk draf opini berpov Anda; "
     "tambahkan arah atau panjang bila perlu, mis. /opini singkat Carrick perlu diberi waktu "
     "(pilihan panjang: singkat, panjang, atau 3 kalimat)\n"
@@ -63,6 +64,43 @@ def reply_for(cmd, args, state, cfg, now):
         bad = [f"- {k} ({v['fails']}x): {html.escape(str(v.get('last_error', ''))[:80])}"
                for k, v in state["feeds"].items() if v.get("fails", 0) >= 3]
         return "Sumber bermasalah:\n" + "\n".join(bad) if bad else "Semua sumber sehat."
+    if cmd == "/nama":
+        from . import text as T
+        sub, term = (args[0].lower() if args else "daftar"), " ".join(args[1:]).strip()
+        add, rem = state.setdefault("names_add", []), state.setdefault("names_remove", [])
+        low = lambda xs: [x.lower() for x in xs]
+        base = list(cfg.get("mu_names", []))
+        if sub == "tambah":
+            if not term:
+                return "Format: /nama tambah <nama>, misalnya /nama tambah Hojlund"
+            if term.lower() in low(rem):
+                rem[:] = [x for x in rem if x.lower() != term.lower()]
+                return f"{html.escape(term)} dimasukkan kembali. Berlaku mulai siklus berikutnya."
+            if term.lower() in low(base) + low(add):
+                return "Nama itu sudah ada di daftar."
+            add.append(term)
+            return f"Ditambahkan: {html.escape(term)}. Berlaku mulai siklus berikutnya."
+        if sub == "hapus":
+            if not term:
+                return "Format: /nama hapus <nama>, misalnya /nama hapus Rashford"
+            if term.lower() in low(add):
+                add[:] = [x for x in add if x.lower() != term.lower()]
+                return f"Dihapus dari tambahan: {html.escape(term)}."
+            if term.lower() in low(base):
+                if term.lower() in low(rem):
+                    return "Nama itu sudah dikeluarkan."
+                rem.append(term)
+                return f"Dikeluarkan: {html.escape(term)}. Berlaku mulai siklus berikutnya."
+            return "Nama itu tidak ada di daftar. Lihat /nama."
+        if sub == "reset":
+            add.clear()
+            rem.clear()
+            return "Perubahan lewat Telegram dibatalkan; daftar kembali mengikuti config/settings.yaml."
+        names = T.effective_names(cfg, state)
+        return (f"<b>Kata kunci nama ({len(names)})</b>\n" + html.escape(", ".join(names))
+                + (f"\n\nDitambah lewat Telegram: {html.escape(', '.join(add))}" if add else "")
+                + (f"\nDikeluarkan lewat Telegram: {html.escape(', '.join(rem))}" if rem else "")
+                + "\n\nUbah: /nama tambah <nama>, /nama hapus <nama>, /nama reset")
     if cmd == "/blokir":
         minutes = None
         if args and args[0].isdigit():

@@ -135,8 +135,19 @@ def clean_html(s):
 
 
 # ---------- Relevansi ----------
-def build_relevance(cfg):
-    keys = [re.escape(k) for k in list(cfg["filter"]["keywords"]) + list(cfg.get("mu_names", []))]
+def effective_names(cfg, state=None):
+    """Daftar nama pemain/staf: config + tambahan lewat Telegram - yang dikeluarkan lewat Telegram."""
+    st = state or {}
+    removed = {n.lower() for n in st.get("names_remove", [])}
+    out = []
+    for n in list(cfg.get("mu_names", [])) + list(st.get("names_add", [])):
+        if n.lower() not in removed and n not in out:
+            out.append(n)
+    return out
+
+
+def build_relevance(cfg, state=None):
+    keys = [re.escape(k) for k in list(cfg["filter"]["keywords"]) + effective_names(cfg, state)]
     excl = [re.escape(k) for k in cfg["filter"]["exclude"]]
     return (
         re.compile(r"\b(?:%s)\b" % "|".join(keys), re.I) if keys else None,

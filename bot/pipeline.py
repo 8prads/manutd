@@ -12,7 +12,7 @@ class Pipeline:
     def __init__(self, cfg, state, tg, summarize, now=time.time, log=print):
         self.cfg, self.st, self.tg, self.summarize = cfg, state, tg, summarize
         self.now, self.log = now, log
-        self.rel = T.build_relevance(cfg)
+        self.rel = T.build_relevance(cfg, state)
         self.pundit_re = T.build_pundit_re(cfg)
         names = cfg["people"]["trusted_journalists"] + cfg["people"]["pundits"] + cfg.get("entities_seed", [])
         self.seed = {t for n in names for t in T.tokens(n)}

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-from . import commands, digest, llm, matchday, opini, reminders, state as S
+from . import commands, digest, llm, matchday, opini, reminders, state as S, text as T
 from .llm import make_summarizer
 from .pipeline import Pipeline
 from .sources import fetch_all
@@ -59,6 +59,7 @@ def main():
     pipe = Pipeline(cfg, state, tg, None, log=print)
     pipe.summarize = make_summarizer(cfg, env, history=pipe.recent_titles)
     jobs = commands.handle(tg, state, cfg, env.get("TELEGRAM_CHAT_ID", ""))
+    pipe.rel = T.build_relevance(cfg, state)  # daftar nama bisa berubah lewat /nama
     if jobs:
         opini.process(jobs, state, cfg, env, tg, pipe)
     reminders.run(tg, state, cfg, time.time())
