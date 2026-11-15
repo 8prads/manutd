@@ -2,6 +2,12 @@
 
 Setiap versi mencantumkan file yang berubah, supaya mudah menimpa file yang tepat di repo.
 
+## v1.14 - Kata kunci nama dan diagnosa lebih jelas
+- Perintah `/nama` (`tambah`, `hapus`, `reset`, daftar) untuk menambah atau mengeluarkan nama pemain, staf, dan pelatih tanpa mengedit file; perubahan disimpan di state.
+- ESPN: jadwal kini mencoba papan skor lalu jadwal tim, dan galatnya ditampilkan lengkap; parser lebih toleran terhadap bentuk skor dan nama tim.
+- Highlightly: pesan galat `/statistik` dan `/diagnosa` menyebut alasan pasti (pertandingan tidak ditemukan, format tidak dikenali) serta pencarian mencoba tanggal sekitar; pencarian id yang gagal diingat 30 menit agar kuota hemat; kuota tampil apa adanya dari respons.
+- File: `bot/football.py`, `bot/commands.py`, `bot/text.py`, `bot/pipeline.py`, `bot/main.py`, `README.md`, `docs/PANDUAN.md`, `tests/test_v113.py`, `tests/test_v114.py` (baru), `CHANGELOG.md`.
+
 ## v1.13 - Lineup, statistik, dan jadwal lebih rapi
 - Highlightly ditambahkan sebagai penyedia lineup dan statistik (kunci gratis `HIGHLIGHTLY_API_KEY`); rantai penyedia: ESPN, Highlightly, API-Football. Id pertandingan disimpan agar kuota 100 per hari hemat.
 - `/jadwal` dan jadwal bulanan dirapikan: tiap pertandingan tiga baris (tanggal dan jam WIB, lawan dan kandang/tandang, kompetisi) dengan nama klub dan kompetisi yang dipersingkat.
