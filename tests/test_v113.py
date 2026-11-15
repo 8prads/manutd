@@ -72,7 +72,7 @@ class TestHighlightly(unittest.TestCase):
         with mock.patch.object(F, "_get", side_effect=RuntimeError("net")), mock.patch.object(F, "_apif", side_effect=RuntimeError("k")), \
                 mock.patch.object(F, "_fd", side_effect=RuntimeError("k")), mock.patch.object(F, "_hl", return_value=ok):
             out = "\n".join(F.diagnose())
-        self.assertIn("OK  Highlightly: paket free, 3/100 hari ini; kunci contoh: id,date,homeTeam", out)
+        self.assertIn("OK  Highlightly: paket free; requestLimit=100, requestCount=3; kunci contoh: id,date,homeTeam", out)
         self.assertIn("GAGAL  ESPN jadwal", out)
 
     def test_espn_requests_use_browser_user_agent(self):
