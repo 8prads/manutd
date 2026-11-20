@@ -2,6 +2,12 @@
 
 Setiap versi mencantumkan file yang berubah, supaya mudah menimpa file yang tepat di repo.
 
+## v1.16 - Perbaikan ESPN (HTTP 400), diagnosa Google News, server AI sibuk
+- ESPN: parameter `limit=1000` ternyata ditolak papan skor (HTTP 400); dihapus. Jadwal kini gabungan papan skor dan jadwal tim (saling melengkapi, tanpa duplikat), dan galat hanya muncul bila keduanya gagal.
+- `/diagnosa` menambah baris "Google News decode": menguji pengurai pada tautan Google News terbaru di state dan menampilkan hasil mentahnya; log "decode Google News gagal" kini memuat hasil mentah (sebelumnya kosong).
+- Gemini/Groq: respons 500/502/503/504 dua kali pada satu model membuat model itu dilewati selama run.
+- File: `bot/football.py`, `bot/llm.py`, `bot/commands.py`, `tests/test_v115.py`, `tests/test_v116.py` (baru), `CHANGELOG.md`.
+
 ## v1.15 - Jadwal ESPN, waktu Inggris, model AI yang bermasalah
 - Jadwal ESPN: permintaan papan skor kini memakai `limit=1000` dan, bila hasilnya kosong, beralih ke jadwal musim milik tim (sebelumnya hanya saat galat, sehingga `/jadwal` jatuh ke football-data.org tanpa Piala dan tanpa id ESPN untuk lineup). `/diagnosa` melaporkan hitungan papan skor dan jadwal tim secara terpisah.
 - Jadwal (`/jadwal`, jadwal bulanan) dan pengingat kick-off menampilkan WIB plus waktu Inggris (GMT di musim dingin, BST di musim panas; ubah `UK_ZONE` di `bot/football.py` bila ingin GMT murni).
