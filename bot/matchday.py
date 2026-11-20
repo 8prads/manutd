@@ -39,7 +39,7 @@ def run(tg, state, cfg, now_ts, fixtures_fn=None, lineup_fn=None, log=print):
             for f in fx:
                 k = F.fixture_key(f)
                 if k in old and abs(old[k] - f["ts"]) >= 300 and f["ts"] > now_ts:
-                    tg.send(_msg("JADWAL BERUBAH", f"{_vs(f)}\nSebelumnya: {F.fmt_when(old[k])}\nSekarang: {F.fmt_when(f['ts'])}", provider))
+                    tg.send(_msg("JADWAL BERUBAH", f"{_vs(f)}\nSebelumnya: {F.fmt_when(old[k], True)}\nSekarang: {F.fmt_when(f['ts'], True)}", provider))
             md.update(fixtures=fx, fetched=now_ts, provider=provider, error="")
     fixtures, provider = md["fixtures"], md.get("provider", "?")
     sent = md["sent"]
@@ -56,16 +56,18 @@ def run(tg, state, cfg, now_ts, fixtures_fn=None, lineup_fn=None, log=print):
         if f["state"] != "pre" or f["ts"] < now_ts - 600:
             continue
         ko, key = f["ts"], F.fixture_key(f)
-        tag = f"{key}|{datetime.fromtimestamp(ko, WIB):%Y%m%d}"
+        day = f"{datetime.fromtimestamp(ko, WIB):%Y%m%d}"
+        tag, old_tag = f"{key}|{day}", f"{f['comp']}|{f['home']}|{f['away']}|{day}"  # old_tag: format lama, cegah kirim ulang
+        done = lambda p: f"{p}|{tag}" in sent or f"{p}|{old_tag}" in sent
         venue = f" Stadion: {html.escape(f['venue'])}." if f["venue"] else ""
         where = "KANDANG" if f["mu_home"] else "TANDANG"
-        if ko - 86400 <= now_ts < ko - 86400 + 14400 and f"h1|{tag}" not in sent:
-            tg.send(_msg("PENGINGAT", f"Besok: {_vs(f)}\nKick-off {F.fmt_when(ko)}, {where}.{venue}", provider))
+        if ko - 86400 <= now_ts < ko - 86400 + 14400 and not done("h1"):
+            tg.send(_msg("PENGINGAT", f"Besok: {_vs(f)}\nKick-off {F.fmt_when(ko, True)}, {where}.{venue}", provider))
             sent[f"h1|{tag}"] = now_ts
-        lineup_ready = f"lineup|{tag}" in sent
-        if ko - 3600 <= now_ts < ko - 3600 + 1800 and f"h60|{tag}" not in sent:
+        lineup_ready = done("lineup")
+        if ko - 3600 <= now_ts < ko - 3600 + 1800 and not done("h60"):
             note = "Lineup resmi sudah diumumkan (lihat pesan [LINEUP])." if lineup_ready else "Lineup resmi belum diumumkan; akan dikirim begitu keluar."
-            tg.send(_msg("PENGINGAT", f"1 jam lagi: {_vs(f)}\nKick-off {F.fmt_when(ko)}, {where}.\n{note}", provider))
+            tg.send(_msg("PENGINGAT", f"1 jam lagi: {_vs(f)}\nKick-off {F.fmt_when(ko, True)}, {where}.\n{note}", provider))
             sent[f"h60|{tag}"] = now_ts
         if ko - c["lineup_start_minutes"] * 60 <= now_ts < ko + 600 and not lineup_ready:
             allow = now_ts - md.get("apif_poll", 0) >= 600

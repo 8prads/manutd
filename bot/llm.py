@@ -171,9 +171,22 @@ def _post(url, headers, payload, read=30):
     return requests.post(url, headers=headers, json=payload, timeout=(5, read))
 
 
+_SKIP, _STRIKES = {}, {}   # model bermasalah dilewati sampai run berikutnya (tiap run = proses baru)
+
+
+def _bench(model, reason, log, strikes=1):
+    """Tandai model agar dilewati selama run ini (404/403, kuota habis, atau timeout berulang)."""
+    _STRIKES[model] = _STRIKES.get(model, 0) + 1
+    if _STRIKES[model] >= strikes:
+        _SKIP[model] = reason
+        log(f"{model}: dilewati selama run ini ({reason})")
+
+
 def call_gemini(models, key, prompt, log, finish=None):
     fin = finish or _finish
     for m in models:
+        if m in _SKIP:
+            continue
         try:
             r = None
             for thinking in (True, False):  # kurangi waktu berpikir; ulangi tanpa itu jika parameter ditolak
@@ -193,21 +206,27 @@ def call_gemini(models, key, prompt, log, finish=None):
                     return out
                 bump("gemini_fail")
             elif r.status_code == 429:
-                log("gemini: kuota habis")
+                log(f"gemini {m}: kuota habis")
                 bump("gemini_fail")
-                return None
+                _bench(m, "kuota habis", log)  # kuota gratis per model: model berikutnya tetap dicoba
             else:
                 log(f"gemini {m}: HTTP {r.status_code} {r.text[:120]}")
                 bump("gemini_fail")
+                if r.status_code in (403, 404):
+                    _bench(m, f"HTTP {r.status_code}", log)
         except Exception as e:
             log(f"gemini {m}: {type(e).__name__}")
             bump("gemini_fail")
+            if "Timeout" in type(e).__name__:
+                _bench(m, "timeout berulang", log, strikes=2)
     return None
 
 
 def call_groq(models, key, prompt, log, finish=None):
     fin = finish or _finish
     for m in models:
+        if m in _SKIP:
+            continue
         try:
             r = _post("https://api.groq.com/openai/v1/chat/completions",
                       {"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
@@ -222,12 +241,17 @@ def call_groq(models, key, prompt, log, finish=None):
             elif r.status_code == 429:
                 log(f"groq {m}: kuota habis")
                 bump("groq_fail")
+                _bench(m, "kuota habis", log)
             else:
                 log(f"groq {m}: HTTP {r.status_code} {r.text[:120]}")
                 bump("groq_fail")
+                if r.status_code in (403, 404):
+                    _bench(m, f"HTTP {r.status_code}", log)
         except Exception as e:
             log(f"groq {m}: {type(e).__name__}")
             bump("groq_fail")
+            if "Timeout" in type(e).__name__:
+                _bench(m, "timeout berulang", log, strikes=2)
     return None
 
 

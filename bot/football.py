@@ -16,6 +16,7 @@ FD = "https://api.football-data.org/v4"
 HL = "https://sports.highlightly.net"
 BROWSER_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 MU_ESPN, MU_APIF, MU_FD = 360, 33, 66
+UK_ZONE = "Europe/London"  # tampil GMT (musim dingin) atau BST (musim panas); isi "UTC" untuk GMT murni
 
 # kode: (nama, kode ESPN, id API-Football, kode football-data atau None)
 LEAGUES = {
@@ -87,13 +88,32 @@ def chain(steps):
 
 
 # ---------- format ----------
-def fmt_when(ts):
+def _uk(ts):
+    """Waktu Inggris untuk ts: (datetime, label GMT/BST)."""
+    d = datetime.fromtimestamp(ts, timezone.utc)
+    try:
+        from zoneinfo import ZoneInfo
+        d = d.astimezone(ZoneInfo(UK_ZONE))
+    except Exception:
+        pass  # tanpa data zona waktu: pakai UTC (= GMT)
+    lab = d.tzname() or "GMT"
+    return d, ("GMT" if lab == "UTC" else lab)
+
+
+def fmt_uk(ts):
+    d, lab = _uk(ts)
+    return f"{HARI[d.weekday()]} {d.day:02d}/{d.month:02d} {d.hour:02d}.{d.minute:02d} {lab}"
+
+
+def fmt_when(ts, gmt=False):
     d = datetime.fromtimestamp(ts, WIB)
-    return f"{HARI[d.weekday()]} {d.day:02d}/{d.month:02d} {d.hour:02d}.{d.minute:02d} WIB"
+    out = f"{HARI[d.weekday()]} {d.day:02d}/{d.month:02d} {d.hour:02d}.{d.minute:02d} WIB"
+    return f"{out} ({fmt_uk(ts)})" if gmt else out
 
 
 def fixture_key(f):
-    return f"{f['comp']}|{f['home']}|{f['away']}"
+    """Kunci pertandingan yang sama untuk semua penyedia (nama kompetisi dan tim dinormalkan)."""
+    return f"{COMP_ID.get(f['comp'], f['comp'])}|{short_team(f['home'])}|{short_team(f['away'])}"
 
 
 def fmt_fixture_line(f):
@@ -142,6 +162,26 @@ def _espn_score(by):
 parse_espn_schedule = parse_espn_events  # jadwal tim memakai struktur peristiwa yang sama
 
 
+def _team_schedule(slug, lo, hi):
+    """Jadwal musim milik tim (cadangan papan skor): bentuk 'fixture' (mendatang) lalu bentuk biasa."""
+    out, last = [], None
+    for params in ({"fixture": "true"}, None):
+        try:
+            out += [f for f in parse_espn_events(_get(f"{ESPN}/{slug}/teams/{MU_ESPN}/schedule", params=params), slug)
+                    if lo <= f["ts"] <= hi]
+        except Exception as e:
+            last = e
+    if not out and last is not None:
+        raise last
+    seen, uniq = set(), []
+    for f in out:
+        k = f["espn_id"] or fixture_key(f)
+        if k not in seen:
+            seen.add(k)
+            uniq.append(f)
+    return uniq
+
+
 def espn_fixtures(slugs, days_back, days_fwd):
     now = datetime.now(timezone.utc)
     lo, hi = (now - timedelta(days=days_back)).timestamp(), (now + timedelta(days=days_fwd)).timestamp()
@@ -149,15 +189,18 @@ def espn_fixtures(slugs, days_back, days_fwd):
     out, errs = [], []
     for slug in slugs:
         try:
-            out += parse_espn_events(_get(f"{ESPN}/{slug}/scoreboard", params={"dates": rng}), slug)
-            continue
+            got = parse_espn_events(_get(f"{ESPN}/{slug}/scoreboard", params={"dates": rng, "limit": 1000}), slug)
+            if got:
+                out += got
+                continue
+            err = f"{slug} papan skor: kosong"
         except Exception as e:
             err = f"{slug} papan skor: {type(e).__name__} {str(e)[:50]}"
-        try:  # cadangan: jadwal musim milik tim
-            out += [f for f in parse_espn_events(_get(f"{ESPN}/{slug}/teams/{MU_ESPN}/schedule"), slug) if lo <= f["ts"] <= hi]
+        try:  # papan skor kosong atau gagal: pakai jadwal musim milik tim
+            out += _team_schedule(slug, lo, hi)
         except Exception as e:
             errs.append(f"{err}; jadwal tim: {type(e).__name__} {str(e)[:50]}")
-    if len(errs) == len(slugs):
+    if slugs and len(errs) == len(slugs):
         raise RuntimeError(" | ".join(errs[:2]))
     return sorted(out, key=lambda f: f["ts"])
 
@@ -293,11 +336,15 @@ def _flat(items):
 
 
 def _shape(j):
-    """Ringkasan bentuk JSON untuk pesan galat, mis. 'dict: matchId,teams' atau 'list[2]: team,statistics'."""
+    """Ringkasan bentuk JSON untuk pesan galat, mis. 'dict: matchId,teams' atau 'list[2]: team,statistics | stat: displayName,value'."""
     if isinstance(j, dict):
         return "dict: " + ",".join(list(j)[:8])
     if isinstance(j, list):
-        return f"list[{len(j)}]: " + (",".join(list(j[0])[:8]) if j and isinstance(j[0], dict) else "")
+        s = f"list[{len(j)}]: " + (",".join(list(j[0])[:8]) if j and isinstance(j[0], dict) else "")
+        st = j[0].get("statistics") if j and isinstance(j[0], dict) else None
+        if isinstance(st, list) and st and isinstance(st[0], dict):
+            s += " | stat: " + ",".join(list(st[0])[:6])
+        return s
     return type(j).__name__
 
 
@@ -343,7 +390,7 @@ def parse_hl_stats(j):
         return None
     def norm(t):
         name = (t.get("team") or {}).get("name") or t.get("name", "")
-        return name, [(str(s.get("name", "")).lower(), s.get("value")) for s in (t.get("statistics") or t.get("stats") or [])]
+        return name, [(str(s.get("displayName") or s.get("name") or s.get("type") or s.get("label") or "").lower(), s.get("value")) for s in (t.get("statistics") or t.get("stats") or [])]
     ent = [norm(t) for t in teams]
     mu = next((e for e in ent if "manchester united" in e[0].lower()), ent[0])
     op = ent[1] if mu is ent[0] else ent[0]
@@ -384,10 +431,25 @@ def short_team(name):
     return name[4:] if name.startswith("AFC ") else name
 
 
+def _table_name(name, width=21):
+    """Nama tim untuk tabel klasemen: nama penuh bila muat, jika tidak disingkat dengan nama umum (tidak dipotong sembarangan)."""
+    n = (name or "").strip()
+    for suf in (" FC", " AFC", " CF"):
+        if n.endswith(suf):
+            n = n[: -len(suf)]
+    if n.startswith("AFC "):
+        n = n[4:]
+    if len(n) > width:
+        n = short_team(n)
+    return n if len(n) <= width else n[: width - 1] + "."
+
+
 def fmt_fixture_block(f):
     d = datetime.fromtimestamp(f["ts"], WIB)
+    u, lab = _uk(f["ts"])
     opp = f["away"] if f["mu_home"] else f["home"]
     return (f"<b>{HARI[d.weekday()]} {d.day:02d}/{d.month:02d} · {d.hour:02d}.{d.minute:02d} WIB</b>\n"
+            f"{HARI[u.weekday()]} {u.day:02d}/{u.month:02d} · {u.hour:02d}.{u.minute:02d} {lab}\n"
             f"{html.escape(short_team(opp))} · {'KANDANG' if f['mu_home'] else 'TANDANG'}\n"
             f"{html.escape(COMP_ID.get(f['comp'], f['comp']))}")
 
@@ -481,6 +543,27 @@ def get_lineup(f, allow_apif=True):
     return chain([("ESPN", espn), ("Highlightly", hl), ("API-Football", apif)])
 
 
+def espn_check():
+    """Uji jadwal ESPN: hitungan papan skor dan jadwal tim dilaporkan terpisah (bantu cari penyebab hasil kosong)."""
+    now = datetime.now(timezone.utc)
+    end = now + timedelta(days=30)
+    rng, parts, bad = f"{now:%Y%m%d}-{end:%Y%m%d}", [], 0
+    try:
+        n = len(parse_espn_events(_get(f"{ESPN}/eng.1/scoreboard", params={"dates": rng, "limit": 1000}), "eng.1"))
+        parts.append(f"papan skor {n}")
+    except Exception as e:
+        bad += 1
+        parts.append(f"papan skor galat ({type(e).__name__} {str(e)[:40]})")
+    try:
+        parts.append(f"jadwal tim {len(_team_schedule('eng.1', now.timestamp(), end.timestamp()))}")
+    except Exception as e:
+        bad += 1
+        parts.append(f"jadwal tim galat ({type(e).__name__} {str(e)[:40]})")
+    if bad == 2:
+        raise RuntimeError("; ".join(parts))
+    return "; ".join(parts) + " pertandingan PL"
+
+
 def diagnose():
     """Uji tiap penyedia dari server GitHub; satu baris per pengujian."""
     def apif_status():
@@ -515,7 +598,7 @@ def diagnose():
         if not res:
             raise RuntimeError("statistik kosong atau format tidak dikenali (" + _shape(j) + ")")
         return f"{len(res['rows'])} baris untuk {short_team(f['home'])} vs {short_team(f['away'])}"
-    tests = [("ESPN jadwal", lambda: f"{len(espn_fixtures(['eng.1'], 0, 30))} pertandingan PL"),
+    tests = [("ESPN jadwal", espn_check),
              ("ESPN klasemen UEL", lambda: f"{len(parse_espn_standings(_get(f'{ESPN_V2}/uefa.europa/standings')))} baris"),
              ("Highlightly", hl_check),
              ("Highlightly statistik", hl_stats_check),
@@ -546,7 +629,7 @@ def fmt_standings(title, rows, provider):
             if grp:
                 out.append(html.escape(str(grp)))
         mark = ">" if "manchester united" in r["team"].lower() else " "
-        out.append(html.escape(f"{mark}{r['pos']:>2} {r['team'][:20]:<20} {r['p']:>2} {r['w']:>2} {r['d']:>2} {r['l']:>2} {r['pts']:>3}"))
+        out.append(html.escape(f"{mark}{r['pos']:>2} {_table_name(r['team']):<21} {r['p']:>2} {r['w']:>2} {r['d']:>2} {r['l']:>2} {r['pts']:>3}"))
     out += ["</pre>", "Kolom: posisi, tim, main, menang, seri, kalah, poin", f"<i>({provider})</i>"]
     return "\n".join(out)
 
