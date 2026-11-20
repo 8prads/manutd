@@ -49,17 +49,23 @@ class TestUkTime(unittest.TestCase):
 
 
 class TestEspnFixtures(unittest.TestCase):
-    def test_empty_scoreboard_falls_back_to_team_schedule_and_sends_limit(self):
+    def test_scoreboard_400_still_gives_team_schedule_without_limit(self):
         seen = []
 
         def fake_get(url, headers=None, params=None):
             seen.append((url, params))
-            return {"events": []} if url.endswith("/scoreboard") else t112_schedule()
+            if url.endswith("/scoreboard"):
+                raise requests.HTTPError("400 Client Error: Bad Request")
+            return t112_schedule()
         with mock.patch.object(F, "_get", fake_get):
             fx = F.espn_fixtures(["eng.1"], 0, 36500)
         self.assertEqual(len(fx), 1)
-        self.assertEqual(seen[0][1]["limit"], 1000)
+        self.assertTrue(all("limit" not in (p or {}) for _, p in seen))
         self.assertTrue(any(u.endswith("/schedule") for u, _ in seen))
+
+    def test_scoreboard_and_schedule_are_merged_without_duplicates(self):
+        with mock.patch.object(F, "_get", lambda url, headers=None, params=None: t112_schedule()):
+            self.assertEqual(len(F.espn_fixtures(["eng.1"], 0, 36500)), 1)
 
     def test_both_empty_returns_empty_without_error(self):
         with mock.patch.object(F, "_get", return_value={"events": []}):
