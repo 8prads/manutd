@@ -2,6 +2,12 @@
 
 Setiap versi mencantumkan file yang berubah, supaya mudah menimpa file yang tepat di repo.
 
+## v1.17 - Pengurai Google News, berita ganda, jadwal ESPN
+- Pengurai Google News: pustaka `googlenewsdecoder` 0.2.x mengembalikan kunci `success` (bukan `status`), sehingga semua tautan yang berhasil terurai dianggap gagal. Kini kedua kunci dikenali.
+- Anti berita ganda: tautan yang sudah terkirim dalam 48 jam tidak dikirim lagi (`sent_links` di state); state disimpan ke disk setiap selesai kirim sehingga run yang berhenti di tengah tidak mengulang kiriman; `sendMessage` yang kena ReadTimeout tidak dikirim ulang; `state_push.sh` mengulang push sampai 3x.
+- ESPN: jadwal tim menjadi sumber utama dan papan skor hanya cadangan (papan skor menjawab HTTP 400 untuk rentang tanggal); `/diagnosa` menampilkan keduanya terpisah.
+- File: `bot/football.py`, `bot/llm.py`, `bot/telegram.py`, `bot/pipeline.py`, `bot/main.py`, `bot/state.py`, `scripts/state_push.sh`, `tests/test_v117.py` (baru), `CHANGELOG.md`.
+
 ## v1.16 - Perbaikan ESPN (HTTP 400), diagnosa Google News, server AI sibuk
 - ESPN: parameter `limit=1000` ternyata ditolak papan skor (HTTP 400); dihapus. Jadwal kini gabungan papan skor dan jadwal tim (saling melengkapi, tanpa duplikat), dan galat hanya muncul bila keduanya gagal.
 - `/diagnosa` menambah baris "Google News decode": menguji pengurai pada tautan Google News terbaru di state dan menampilkan hasil mentahnya; log "decode Google News gagal" kini memuat hasil mentah (sebelumnya kosong).
