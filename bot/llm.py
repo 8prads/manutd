@@ -103,11 +103,25 @@ def decode_gn(url, log=print):
             bump("decode_ok")
             log(f"decode Google News: berhasil ({urlparse(r['decoded_url']).netloc})")
             return r["decoded_url"]
-        log(f"decode Google News gagal: {str(r.get('message', ''))[:80]}")
+        log(f"decode Google News gagal: {str(r)[:120]}")
     except Exception as e:
-        log(f"decode Google News error: {type(e).__name__}")
+        log(f"decode Google News error: {type(e).__name__} {str(e)[:80]}")
     bump("decode_fail")
     return url
+
+
+def decode_check(urls):
+    """Uji pengurai Google News pada tautan nyata: ringkasan hasil mentah (untuk /diagnosa)."""
+    if not urls:
+        return "tidak ada tautan Google News di berita tersimpan"
+    try:
+        from googlenewsdecoder import gnewsdecoder
+    except Exception as e:
+        raise RuntimeError(f"pustaka tidak terpasang ({type(e).__name__})")
+    r = gnewsdecoder(urls[0], interval=1)
+    if r.get("status") and r.get("decoded_url"):
+        return "berhasil, " + urlparse(r["decoded_url"]).netloc
+    raise RuntimeError("hasil mentah " + repr(r)[:150])
 
 
 def fetch_article(url, max_chars):
@@ -214,6 +228,8 @@ def call_gemini(models, key, prompt, log, finish=None):
                 bump("gemini_fail")
                 if r.status_code in (403, 404):
                     _bench(m, f"HTTP {r.status_code}", log)
+                elif r.status_code in (500, 502, 503, 504):
+                    _bench(m, f"HTTP {r.status_code}", log, strikes=2)  # server sibuk: jangan dicoba terus dalam satu run
         except Exception as e:
             log(f"gemini {m}: {type(e).__name__}")
             bump("gemini_fail")
@@ -247,6 +263,8 @@ def call_groq(models, key, prompt, log, finish=None):
                 bump("groq_fail")
                 if r.status_code in (403, 404):
                     _bench(m, f"HTTP {r.status_code}", log)
+                elif r.status_code in (500, 502, 503, 504):
+                    _bench(m, f"HTTP {r.status_code}", log, strikes=2)  # server sibuk: jangan dicoba terus dalam satu run
         except Exception as e:
             log(f"groq {m}: {type(e).__name__}")
             bump("groq_fail")

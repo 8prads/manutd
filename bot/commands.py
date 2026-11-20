@@ -41,6 +41,17 @@ def _wib(ts):
     return datetime.fromtimestamp(ts, timezone(timedelta(hours=7))).strftime("%d/%m %H:%M WIB") if ts else "-"
 
 
+def _decode_line(state):
+    """Uji pengurai Google News pada tautan terbaru yang tersimpan di state."""
+    from . import llm
+    stories = sorted(state["stories"].values(), key=lambda s: s.get("first_seen", 0), reverse=True)
+    urls = [x["url"] for s in stories for x in s["sources"] if "news.google.com" in x.get("url", "")][:1]
+    try:
+        return f"OK  Google News decode: {llm.decode_check(urls)}"
+    except Exception as e:
+        return f"GAGAL  Google News decode: {type(e).__name__} {str(e)[:150]}"
+
+
 def reply_for(cmd, args, state, cfg, now):
     ov = state["override"]
     if cmd in ("/start", "/bantuan", "/help"):
@@ -132,7 +143,7 @@ def reply_for(cmd, args, state, cfg, now):
         from . import football as F
         try:
             if cmd == "/diagnosa":
-                return "<b>Diagnosa sumber data</b>\n" + "\n".join(html.escape(x) for x in F.diagnose())
+                return "<b>Diagnosa sumber data</b>\n" + "\n".join(html.escape(x) for x in F.diagnose() + [_decode_line(state)])
             if cmd == "/jadwal":
                 days = int(args[0]) if args and args[0].isdigit() else 30
                 prov, fx = F.get_fixtures(min(max(days, 1), 60))

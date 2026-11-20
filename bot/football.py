@@ -162,47 +162,56 @@ def _espn_score(by):
 parse_espn_schedule = parse_espn_events  # jadwal tim memakai struktur peristiwa yang sama
 
 
-def _team_schedule(slug, lo, hi):
-    """Jadwal musim milik tim (cadangan papan skor): bentuk 'fixture' (mendatang) lalu bentuk biasa."""
-    out, last = [], None
-    for params in ({"fixture": "true"}, None):
-        try:
-            out += [f for f in parse_espn_events(_get(f"{ESPN}/{slug}/teams/{MU_ESPN}/schedule", params=params), slug)
-                    if lo <= f["ts"] <= hi]
-        except Exception as e:
-            last = e
-    if not out and last is not None:
-        raise last
+def _dedupe(fixtures):
     seen, uniq = set(), []
-    for f in out:
-        k = f["espn_id"] or fixture_key(f)
+    for f in fixtures:
+        k = f["espn_id"] or f"{fixture_key(f)}|{f['ts']}"
         if k not in seen:
             seen.add(k)
             uniq.append(f)
     return uniq
 
 
+def _team_schedule(slug, lo, hi):
+    """Jadwal musim milik tim: bentuk 'fixture' (mendatang); bentuk biasa ikut dipakai bila perlu masa lalu atau hasilnya kosong."""
+    out, last = [], None
+    past = lo < time.time() - 3600
+    for params in ({"fixture": "true"}, None):
+        try:
+            got = [f for f in parse_espn_events(_get(f"{ESPN}/{slug}/teams/{MU_ESPN}/schedule", params=params), slug)
+                   if lo <= f["ts"] <= hi]
+        except Exception as e:
+            last = e
+            continue
+        out += got
+        if got and not past:
+            break
+    if not out and last is not None:
+        raise last
+    return _dedupe(out)
+
+
 def espn_fixtures(slugs, days_back, days_fwd):
+    """Gabungan papan skor dan jadwal tim (saling melengkapi); galat hanya bila keduanya gagal untuk semua kompetisi."""
     now = datetime.now(timezone.utc)
     lo, hi = (now - timedelta(days=days_back)).timestamp(), (now + timedelta(days=days_fwd)).timestamp()
     rng = f"{(now - timedelta(days=days_back)):%Y%m%d}-{(now + timedelta(days=days_fwd)):%Y%m%d}"
     out, errs = [], []
     for slug in slugs:
+        bad = []
         try:
-            got = parse_espn_events(_get(f"{ESPN}/{slug}/scoreboard", params={"dates": rng, "limit": 1000}), slug)
-            if got:
-                out += got
-                continue
-            err = f"{slug} papan skor: kosong"
+            out += parse_espn_events(_get(f"{ESPN}/{slug}/scoreboard", params={"dates": rng}), slug)
         except Exception as e:
-            err = f"{slug} papan skor: {type(e).__name__} {str(e)[:50]}"
-        try:  # papan skor kosong atau gagal: pakai jadwal musim milik tim
+            bad.append(f"papan skor: {type(e).__name__} {str(e)[:50]}")
+        try:
             out += _team_schedule(slug, lo, hi)
         except Exception as e:
-            errs.append(f"{err}; jadwal tim: {type(e).__name__} {str(e)[:50]}")
+            bad.append(f"jadwal tim: {type(e).__name__} {str(e)[:50]}")
+        if len(bad) == 2:
+            errs.append(f"{slug} " + "; ".join(bad))
     if slugs and len(errs) == len(slugs):
         raise RuntimeError(" | ".join(errs[:2]))
-    return sorted(out, key=lambda f: f["ts"])
+    return sorted(_dedupe(out), key=lambda f: f["ts"])
 
 
 def parse_espn_standings(j):
@@ -549,7 +558,7 @@ def espn_check():
     end = now + timedelta(days=30)
     rng, parts, bad = f"{now:%Y%m%d}-{end:%Y%m%d}", [], 0
     try:
-        n = len(parse_espn_events(_get(f"{ESPN}/eng.1/scoreboard", params={"dates": rng, "limit": 1000}), "eng.1"))
+        n = len(parse_espn_events(_get(f"{ESPN}/eng.1/scoreboard", params={"dates": rng}), "eng.1"))
         parts.append(f"papan skor {n}")
     except Exception as e:
         bad += 1
