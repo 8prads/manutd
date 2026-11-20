@@ -24,9 +24,9 @@ class TestScheduleFormat(unittest.TestCase):
         self.assertEqual([F.short_team(n) for n in ("Liverpool FC", "AFC Bournemouth", "Brighton & Hove Albion FC", "Manchester United", "Sporting Clube de Portugal")],
                          ["Liverpool", "Bournemouth", "Brighton", "Man United", "Sporting CP"])
         fx = F.parse_espn_events(t112.ESPN_SB, "eng.1")[0]
-        self.assertEqual(F.fmt_fixture_block(fx), "<b>Sen 23/11 · 00.30 WIB</b>\nArsenal · KANDANG\nPremier League")
+        self.assertEqual(F.fmt_fixture_block(fx), "<b>Sen 23/11 · 00.30 WIB</b>\nMin 22/11 · 17.30 GMT\nArsenal · KANDANG\nPremier League")
         away = {**fx, "mu_home": False, "home": "Liverpool FC", "away": "Manchester United", "comp": "UEFA Champions League"}
-        self.assertEqual(F.fmt_fixture_block(away).splitlines()[1:], ["Liverpool · TANDANG", "Liga Champions"])
+        self.assertEqual(F.fmt_fixture_block(away).splitlines()[2:], ["Liverpool · TANDANG", "Liga Champions"])
         out = F.fmt_schedule([fx, away], "<b>Jadwal</b>")
         self.assertEqual(out.count("\n\n"), 2)
 
