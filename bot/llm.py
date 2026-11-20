@@ -92,6 +92,11 @@ def page_date(raw):
     return None
 
 
+def _gn_ok(r):
+    """Pustaka googlenewsdecoder 0.2.x memakai kunci 'success'; versi lama memakai 'status'."""
+    return bool(r.get("success") if "success" in r else r.get("status"))
+
+
 def decode_gn(url, log=print):
     """Ubah tautan Google News menjadi alamat artikel asli (gratis, tidak resmi). Gagal = kembalikan tautan semula."""
     if "news.google.com" not in url:
@@ -99,7 +104,7 @@ def decode_gn(url, log=print):
     try:
         from googlenewsdecoder import gnewsdecoder
         r = gnewsdecoder(url, interval=1)
-        if r.get("status") and r.get("decoded_url"):
+        if _gn_ok(r) and r.get("decoded_url"):
             bump("decode_ok")
             log(f"decode Google News: berhasil ({urlparse(r['decoded_url']).netloc})")
             return r["decoded_url"]
@@ -119,7 +124,7 @@ def decode_check(urls):
     except Exception as e:
         raise RuntimeError(f"pustaka tidak terpasang ({type(e).__name__})")
     r = gnewsdecoder(urls[0], interval=1)
-    if r.get("status") and r.get("decoded_url"):
+    if _gn_ok(r) and r.get("decoded_url"):
         return "berhasil, " + urlparse(r["decoded_url"]).netloc
     raise RuntimeError("hasil mentah " + repr(r)[:150])
 

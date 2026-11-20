@@ -18,6 +18,7 @@ class Pipeline:
         self.seed = {t for n in names for t in T.tokens(n)}
         self.jr = T.build_journalist_re(cfg)
         self.big = {x.lower() for x in cfg.get("big_platforms", []) + cfg["tier1_names"]}
+        self.checkpoint = lambda: None  # main mengisinya: simpan state ke disk setiap selesai kirim
 
     # ---------- pengaturan (bisa diubah lewat Telegram) ----------
     @property
@@ -289,6 +290,12 @@ class Pipeline:
                 if age > tr["hold_minutes"] * 60:
                     s["status"], s["drop"] = "dropped", "tidak naik"
                 continue
+            early_link = self._best_link(s)
+            ek = T.canonical_url(early_link) if early_link else ""
+            if ek and now - self.st.setdefault("sent_links", {}).get(ek, 0) < 172800:
+                s["status"], s["drop"] = "dropped", "duplikat"  # tautan yang sama sudah pernah terkirim
+                self.log(f"dibuang (duplikat tautan): {s['title'][:70]}")
+                continue
             label = self._label(s)
             topic = self._find_topic(s)
             if topic and now - topic["last_sent"] < self.cooldown_s and not self._bypass(s, label, topic):
@@ -327,12 +334,20 @@ class Pipeline:
             if label not in unlimited:
                 self.st["sent_log"].append(now)
             sent += 1
+            sl = self.st.setdefault("sent_links", {})
+            for u in (early_link, link):
+                if u:
+                    sl[T.canonical_url(u)] = now
+            self.checkpoint()
             self.log(f"terkirim [{label}] {s['title'][:70]} | terbit {time.strftime('%Y-%m-%d %H:%M', time.gmtime(s['pub']))} UTC")
         return sent
 
     def refresh_edits(self):
         for s in self.st["stories"].values():
             if s["status"] == "sent" and s["needs_edit"]:
+                if not s.get("msg_id"):  # id pesan tidak diketahui (sendMessage timeout): tidak bisa diedit
+                    s["needs_edit"] = False
+                    continue
                 self.tg.edit(s["msg_id"], T.format_message(s["label"], s["body"], self.source_names(s),
                                                            s.get("body_en", ""), s.get("link", "")))
                 s["needs_edit"] = False
@@ -349,3 +364,4 @@ class Pipeline:
         st["topics"] = [t for t in st["topics"] if now - t["last_sent"] < 10800]
         st["blocks"] = [b for b in st.get("blocks", []) if not b.get("until") or b["until"] > now]
         st["sent_log"] = [t for t in st["sent_log"] if now - t < 7200]
+        st["sent_links"] = {k: v for k, v in st.get("sent_links", {}).items() if now - v < 172800}

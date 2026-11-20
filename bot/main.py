@@ -58,6 +58,7 @@ def main():
     llm.STATS = state.setdefault("ai", {})
     pipe = Pipeline(cfg, state, tg, None, log=print)
     pipe.summarize = make_summarizer(cfg, env, history=pipe.recent_titles)
+    pipe.checkpoint = lambda: S.save(path, state)  # state tersimpan tiap selesai kirim, walau run berhenti di tengah
     jobs = commands.handle(tg, state, cfg, env.get("TELEGRAM_CHAT_ID", ""))
     pipe.rel = T.build_relevance(cfg, state)  # daftar nama bisa berubah lewat /nama
     if jobs:

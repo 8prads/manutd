@@ -192,21 +192,23 @@ def _team_schedule(slug, lo, hi):
 
 
 def espn_fixtures(slugs, days_back, days_fwd):
-    """Gabungan papan skor dan jadwal tim (saling melengkapi); galat hanya bila keduanya gagal untuk semua kompetisi."""
+    """Jadwal tim ESPN (utama); papan skor hanya cadangan bila jadwal tim kosong atau gagal. Galat bila semua kompetisi gagal."""
     now = datetime.now(timezone.utc)
     lo, hi = (now - timedelta(days=days_back)).timestamp(), (now + timedelta(days=days_fwd)).timestamp()
     rng = f"{(now - timedelta(days=days_back)):%Y%m%d}-{(now + timedelta(days=days_fwd)):%Y%m%d}"
     out, errs = [], []
     for slug in slugs:
-        bad = []
+        bad, got = [], []
         try:
-            out += parse_espn_events(_get(f"{ESPN}/{slug}/scoreboard", params={"dates": rng}), slug)
-        except Exception as e:
-            bad.append(f"papan skor: {type(e).__name__} {str(e)[:50]}")
-        try:
-            out += _team_schedule(slug, lo, hi)
+            got = _team_schedule(slug, lo, hi)
         except Exception as e:
             bad.append(f"jadwal tim: {type(e).__name__} {str(e)[:50]}")
+        if not got:
+            try:
+                got = parse_espn_events(_get(f"{ESPN}/{slug}/scoreboard", params={"dates": rng}), slug)
+            except Exception as e:
+                bad.append(f"papan skor: {type(e).__name__} {str(e)[:50]}")
+        out += got
         if len(bad) == 2:
             errs.append(f"{slug} " + "; ".join(bad))
     if slugs and len(errs) == len(slugs):
@@ -552,22 +554,27 @@ def get_lineup(f, allow_apif=True):
     return chain([("ESPN", espn), ("Highlightly", hl), ("API-Football", apif)])
 
 
+def _why(e):
+    code = getattr(getattr(e, "response", None), "status_code", None)
+    return f"HTTP {code}" if code else f"{type(e).__name__} {str(e)[:40]}"
+
+
 def espn_check():
-    """Uji jadwal ESPN: hitungan papan skor dan jadwal tim dilaporkan terpisah (bantu cari penyebab hasil kosong)."""
+    """Uji jadwal ESPN: jadwal tim (utama) dan papan skor (cadangan) dilaporkan terpisah."""
     now = datetime.now(timezone.utc)
     end = now + timedelta(days=30)
     rng, parts, bad = f"{now:%Y%m%d}-{end:%Y%m%d}", [], 0
+    try:
+        parts.append(f"jadwal tim {len(_team_schedule('eng.1', now.timestamp(), end.timestamp()))}")
+    except Exception as e:
+        bad += 1
+        parts.append(f"jadwal tim galat ({_why(e)})")
     try:
         n = len(parse_espn_events(_get(f"{ESPN}/eng.1/scoreboard", params={"dates": rng}), "eng.1"))
         parts.append(f"papan skor {n}")
     except Exception as e:
         bad += 1
-        parts.append(f"papan skor galat ({type(e).__name__} {str(e)[:40]})")
-    try:
-        parts.append(f"jadwal tim {len(_team_schedule('eng.1', now.timestamp(), end.timestamp()))}")
-    except Exception as e:
-        bad += 1
-        parts.append(f"jadwal tim galat ({type(e).__name__} {str(e)[:40]})")
+        parts.append(f"papan skor galat ({_why(e)})")
     if bad == 2:
         raise RuntimeError("; ".join(parts))
     return "; ".join(parts) + " pertandingan PL"

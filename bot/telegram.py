@@ -12,6 +12,13 @@ class Telegram:
         for _ in range(3):
             try:
                 r = requests.post(f"https://api.telegram.org/bot{self.token}/{method}", json=payload, timeout=20)
+            except requests.ReadTimeout:
+                if method == "sendMessage":  # status tidak pasti (mungkin sudah terkirim): jangan kirim ulang agar tidak ganda
+                    self.log("telegram sendMessage: ReadTimeout, tidak dikirim ulang agar tidak ganda")
+                    return {"message_id": 0}
+                self.log(f"telegram {method}: ReadTimeout")
+                time.sleep(2)
+                continue
             except requests.RequestException as e:
                 self.log(f"telegram {method}: {type(e).__name__}")
                 time.sleep(2)
