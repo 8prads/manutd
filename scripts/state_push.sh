@@ -11,4 +11,8 @@ git init -q
 git checkout -q -b state
 git add state.json
 git -c user.name="news-bot" -c user.email="news-bot@users.noreply.github.com" commit -q -m "state"
-git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" state
+for i in 1 2 3; do
+  git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" state && exit 0
+  echo "push state gagal (percobaan $i), mengulang"; sleep $((i * 3))
+done
+echo "push state gagal 3x"; exit 1
