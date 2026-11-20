@@ -2,6 +2,15 @@
 
 Setiap versi mencantumkan file yang berubah, supaya mudah menimpa file yang tepat di repo.
 
+## v1.15 - Jadwal ESPN, waktu Inggris, model AI yang bermasalah
+- Jadwal ESPN: permintaan papan skor kini memakai `limit=1000` dan, bila hasilnya kosong, beralih ke jadwal musim milik tim (sebelumnya hanya saat galat, sehingga `/jadwal` jatuh ke football-data.org tanpa Piala dan tanpa id ESPN untuk lineup). `/diagnosa` melaporkan hitungan papan skor dan jadwal tim secara terpisah.
+- Jadwal (`/jadwal`, jadwal bulanan) dan pengingat kick-off menampilkan WIB plus waktu Inggris (GMT di musim dingin, BST di musim panas; ubah `UK_ZONE` di `bot/football.py` bila ingin GMT murni).
+- Kunci pengingat pertandingan dinormalkan (nama kompetisi dan tim sama untuk semua penyedia) sehingga pengingat tidak terkirim dua kali bila penyedia jadwal berganti; kunci format lama tetap dikenali.
+- Model AI: model yang menjawab 404/403, kuota habis, atau timeout dua kali dilewati selama run itu; kuota Gemini habis pada satu model tidak lagi menghentikan model berikutnya. `llama-3.3-70b-versatile` dibuang dari Groq (404), diganti `openai/gpt-oss-20b` sebagai cadangan.
+- Highlightly statistik: parser membaca `displayName`, dan pesan galat menampilkan contoh kunci entri statistik.
+- `/klasemen`: nama tim tidak lagi terpotong (nama penuh bila muat, jika tidak nama umum seperti Brighton atau Wolves).
+- File: `bot/football.py`, `bot/matchday.py`, `bot/llm.py`, `config/settings.yaml`, `docs/PANDUAN.md`, `tests/test_v113.py`, `tests/test_v115.py` (baru), `CHANGELOG.md`.
+
 ## v1.14 - Kata kunci nama dan diagnosa lebih jelas
 - Perintah `/nama` (`tambah`, `hapus`, `reset`, daftar) untuk menambah atau mengeluarkan nama pemain, staf, dan pelatih tanpa mengedit file; perubahan disimpan di state.
 - ESPN: jadwal kini mencoba papan skor lalu jadwal tim, dan galatnya ditampilkan lengkap; parser lebih toleran terhadap bentuk skor dan nama tim.
