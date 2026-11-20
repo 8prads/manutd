@@ -50,7 +50,7 @@ Jadwal cadangan dari GitHub (tiap 15 menit) sudah ada di workflow dan aman berja
 
 **Kata kunci nama:** `/nama` menampilkan daftar pemain dan staf yang dikenali bot. `/nama tambah Hojlund` menambah nama (mis. pembelian baru), `/nama hapus Rashford` mengeluarkan nama yang sudah pergi, `/nama reset` membatalkan semua perubahan lewat Telegram. Perubahan tersimpan dan berlaku mulai siklus berikutnya; daftar bawaan ada di `mu_names` pada `config/settings.yaml`.
 
-**Data dan filter:** `/jadwal` (30 hari ke depan, `/jadwal 14` untuk 14 hari), `/klasemen pl|ucl|uel|laliga|seriea|bundesliga|ligue1`, `/statistik` (pertandingan terakhir), `/diagnosa`. Blokir kata: `/blokir bruno contract` (permanen), `/blokir 120 bruno contract` (30-360 menit), `/buka bruno contract`, `/daftarblokir`. Berita [RESMI] tidak pernah diblokir.
+**Data dan filter:** `/jadwal` (30 hari ke depan, `/jadwal 14` untuk 14 hari; jam ditampilkan dalam WIB dan waktu Inggris GMT/BST), `/klasemen pl|ucl|uel|laliga|seriea|bundesliga|ligue1`, `/statistik` (pertandingan terakhir), `/diagnosa`. Blokir kata: `/blokir bruno contract` (permanen), `/blokir 120 bruno contract` (30-360 menit), `/buka bruno contract`, `/daftarblokir`. Berita [RESMI] tidak pernah diblokir.
 
 **Draf opini:** di Telegram, tekan lama sebuah berita dari bot lalu pilih Reply, ketik `/opini` (boleh ditambah arah opini, misalnya `/opini Carrick perlu diberi waktu`). Atur panjang dengan kata kunci: `singkat` (2-3 kalimat), `3 kalimat`, atau `panjang`; tanpa kata kunci hasilnya 1-2 paragraf pendek, lalu kirim. Dalam satu siklus bot membalas dengan draf opini berpov Anda, mengutip perintah Anda.
 
