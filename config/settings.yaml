@@ -61,10 +61,47 @@ summary:
   long_article_chars: 2500     # artikel lebih panjang dari ini = ringkasan lebih panjang
   max_article_chars: 6000
   retry_cycles: 2              # coba ulang terjemahan sebelum memakai ringkasan Inggris
+  body_max_chars: 300          # batas isi berita per bahasa (di luar headline dan kutipan)
 
 llm:
-  gemini_models: ["gemini-3.8-flash", "gemini-3.5-flash-lite"]
-  groq_models: ["openai/gpt-oss-120b", "openai/gpt-oss-20b"]   # llama-3.3-70b-versatile dibuang: Groq menjawab 404
+  # Penyedia AI. Penyedia tanpa kunci di GitHub Secrets dilewati otomatis. Nama model bisa diganti bila 404.
+  # Kuota harian yang habis disimpan di state, sehingga penyedia itu tidak dipanggil lagi sampai reset.
+  providers:
+    gemini:
+      kind: gemini
+      key_env: GEMINI_API_KEY
+      models: ["gemini-3.8-flash", "gemini-3.5-flash-lite"]
+    groq:
+      kind: openai
+      url: "https://api.groq.com/openai/v1/chat/completions"
+      key_env: GROQ_API_KEY
+      models: ["openai/gpt-oss-120b", "openai/gpt-oss-20b"]   # llama-3.3-70b-versatile dibuang: Groq menjawab 404
+    cerebras:
+      kind: openai
+      url: "https://api.cerebras.ai/v1/chat/completions"
+      key_env: CEREBRAS_API_KEY
+      models: ["gpt-oss-120b"]
+      max_param: max_completion_tokens
+      min_interval_seconds: 13     # batas gratis sekitar 5 permintaan per menit
+    mistral:
+      kind: openai
+      url: "https://api.mistral.ai/v1/chat/completions"
+      key_env: MISTRAL_API_KEY
+      models: ["mistral-small-latest"]
+    openrouter:
+      kind: openai
+      url: "https://openrouter.ai/api/v1/chat/completions"
+      key_env: OPENROUTER_API_KEY
+      models: ["openai/gpt-oss-120b:free"]
+      max_per_day: 45              # tanpa saldo, batas gratis sekitar 50 permintaan per hari
+  # Urutan pakai per tugas. Pemeriksa mendahulukan penyedia yang berbeda dari penulisnya.
+  order:
+    write: [gemini, groq, cerebras, mistral, openrouter]
+    check: [groq, cerebras, mistral, gemini, openrouter]
+  max_calls_per_run: 40            # batas panggilan AI (menulis + memeriksa) dalam satu run
+  max_seconds_per_run: 240         # setelah ini AI tidak dipanggil lagi di run itu (berita tertahan ke run berikutnya)
+  check_types: [transfer, injury, manager]       # jenis kejadian yang selalu diperiksa ulang oleh AI
+  check_labels: [RUMOR, SPEKULASI, TRANSFER, CEDERA]
 
 health:
   alert_after_failures: 12     # peringatan jika sumber gagal berturut-turut (12 siklus = sekitar 1 jam)
@@ -138,21 +175,52 @@ people:
     - Danny Murphy
     - Gabby Agbonlahor
 
-# Platform besar: ditulis sebagai sumber (bersama tier1_names). Platform kecil/komunitas diganti
-# nama jurnalis bila teridentifikasi di teks berita; jika tidak, nama platform tetap ditampilkan.
-big_platforms:
-  - Daily Mail
-  - Mail Online
-  - Mirror
-  - Daily Mirror
-  - Daily Express
-  - Express
-  - The Sun
-  - Metro
-  - Evening Standard
-  - talkSPORT
-  - Goal
-  - Goal.com
+# Golongan kredibilitas sumber. A = media utama/resmi, B = media andal. Sumber lain (golongan J: Football365,
+# CaughtOffside, GiveMeSport, Mail, Mirror, blog fans, dll.) hanya dikirim bila artikelnya mengutip jurnalis di
+# people.trusted_journalists dengan kalimat bukti yang ada di teks. Nama sumber golongan J tidak ditulis di pesan;
+# yang ditulis nama jurnalis yang dikutip.
+credibility:
+  A:
+    - ManUtd.com
+    - Manchester United
+    - BBC Sport
+    - BBC
+    - The Guardian
+    - Sky Sports
+    - Sky Sports News
+    - ESPN
+    - The Athletic
+    - The Telegraph
+    - The Times
+    - Reuters
+  B:
+    - Manchester Evening News
+    - The Independent
+    - Evening Standard
+    - talkSPORT
+    - Goal
+    - Goal.com
+
+# Akun X media untuk atribusi kutipan ("told @SkySportsNews"). Nama yang tidak ada di sini ditulis apa adanya.
+# Periksa ulang akun-akun ini; ubah sesuai kebutuhan.
+x_handles:
+  Sky Sports: "@SkySportsNews"
+  Sky Sports News: "@SkySportsNews"
+  BBC Sport: "@BBCSport"
+  The Guardian: "@guardian"
+  The Athletic: "@TheAthleticFC"
+  ESPN: "@ESPNFC"
+  ManUtd.com: "@ManUtd"
+  Manchester United: "@ManUtd"
+  Manchester Evening News: "@MENnewsdesk"
+  talkSPORT: "@talkSPORT"
+  The Telegraph: "@TelegraphSport"
+  The Times: "@TimesSport"
+  The Independent: "@IndyFootball"
+  Evening Standard: "@standardsport"
+  Goal: "@goal"
+  Reuters: "@Reuters"
+  TNT Sports: "@tntsports"
 
 # Nama penerbit di Google News yang diganti (mis. The Athletic muncul sebagai The New York Times)
 source_aliases:
@@ -176,7 +244,6 @@ tier1_names:
   - The Telegraph
   - The Independent
   - The Times
-  - Football365
   - ManUtd.com
   - Manchester United
 

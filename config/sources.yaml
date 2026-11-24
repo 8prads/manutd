@@ -9,6 +9,7 @@
 # min_interval_minutes / max_per_day / active_hours: batasi seberapa sering sumber (terutama API gratis) dipanggil,
 # supaya tidak kena limit walau workflow sering jalan. active_hours memakai WIB, mis. "12-6" = 12:00 sampai 06:00.
 # quiet: true = sumber opsional, kegagalannya tidak memicu peringatan Telegram.
+# Golongan kredibilitas (A/B/J) ada di config/settings.yaml bagian credibility, terpisah dari tier di sini.
 # Reddit dinonaktifkan karena Reddit memblokir server GitHub (HTTP 403).
 # GDELT dinonaktifkan karena server GDELT selalu timeout dari GitHub dan memperlambat tiap siklus.
 # ============================================================
@@ -20,7 +21,7 @@ sources:
   - {id: sky_football, name: "Sky Sports", type: rss, url: "https://www.skysports.com/rss/12040", tier: 1, dedicated: false}
   - {id: gn_espn, name: "Google News", type: gnews_rss, query: "Manchester United site:espn.com", tier: 2, dedicated: false}
   - {id: men, name: "Manchester Evening News", type: rss, url: "https://www.manchestereveningnews.co.uk/all-about/manchester-united-fc?service=rss", tier: 1, dedicated: true}
-  - {id: f365, name: "Football365", type: rss, url: "https://www.football365.com/manchester-united/rss2", tier: 1, dedicated: true}
+  - {id: f365, name: "Football365", type: rss, url: "https://www.football365.com/manchester-united/rss2", tier: 2, dedicated: true}
 
   # ---- Blog dan situs fans ----
   - {id: caughtoffside, name: "CaughtOffside", type: rss, url: "https://www.caughtoffside.com/tags/premier-league/manchester-united/feed/", tier: 2, dedicated: true}
