@@ -19,14 +19,18 @@ Mengumpulkan puluhan sumber, menyaring berita ganda, meringkasnya ke bahasa Indo
 - **Anti-ganda**: berita yang sama dari banyak sumber hanya dikirim sekali. Sumber tambahan digabung ke pesan lama dengan mengedit pesan itu.
 - **Cooldown topik**: topik yang baru dikirim ditahan selama 15 menit (default). Kabar yang naik tingkat, misalnya rumor menjadi resmi, tetap langsung lewat.
 - **Filter tren**: berita dari blog baru dikirim jika didukung sumber lain atau ramai di Reddit.
-- **Laporan singkat bergaya jurnalis** dalam dua bahasa (Indonesia dan Inggris) dengan tautan sumber: kalimat pendek dan padat tanpa membuang poin penting (Gemini, dengan Groq sebagai cadangan).
+- **Headline dan isi singkat** dalam dua bahasa (Indonesia dan Inggris): satu kalimat headline yang ditulis ulang dengan bahasa sendiri dan berdiri sendiri (siap diposting terpisah), lalu isi maksimal 300 karakter yang memuat poin pentingnya, dengan tautan sumber.
+- **Kutipan wawancara persis**: berita `[INTERVIEW]` dan `[PUNDIT]` memuat konteks lalu kutipan dalam format `Nama: “kutipan”. “kutipan”, told @Media.` Kutipan Inggris diperiksa kode agar benar-benar ada di artikel (tidak mungkin karangan AI); versi Indonesia berisi terjemahannya.
+- **Membaca artikel penuh dan menyaring kredibilitas**: bot mengambil teks utama artikel (iklan dan berita terkait dibuang), menentukan jenis tulisan, tingkat kepastian, dan sumber klaim. Media golongan A/B dikirim langsung. Sumber lain (Football365, CaughtOffside, GiveMeSport, Mail, Mirror, blog) hanya dikirim bila mengutip jurnalis tepercaya dengan kalimat bukti dari artikel. Satir dibuang, opini dan prediksi berlabel `[SPEKULASI]`, dan klaim yang bertentangan dengan laporan yang lebih kredibel dibuang.
+- **Pemeriksaan ulang**: kode memeriksa angka dan kutipan terhadap artikel, lalu AI kedua (dari penyedia berbeda) memeriksa makna, tingkat kepastian, dan sumber untuk berita transfer, kontrak, cedera, pelatih, rumor, dan spekulasi. Draf yang bermasalah ditulis ulang sekali, dan dibuang bila masih salah.
+- **AI multi-penyedia gratis**: Gemini, Groq, Cerebras, Mistral, dan OpenRouter dengan urutan terpisah untuk menulis dan memeriksa. Penyedia tanpa kunci dilewati, kuota harian yang habis diingat sampai reset, dan batas per menit dihormati.
 - **Penjaga berita basi**: tanggal diverifikasi, dan AI membandingkan dengan berita yang sudah dikirim agar berita ulang atau usang tidak ikut terkirim.
 - **Data pertandingan**: `/jadwal`, `/klasemen` (PL, UCL, UEL, dan liga lain), `/statistik`, pengingat H-1 dan 1 jam sebelum kick-off, lineup resmi, peringatan jadwal berubah, serta jadwal bulanan otomatis (ESPN, API-Football, football-data.org).
 - **Ringkasan pagi** berita terpenting 24 jam terakhir dan **blokir kata** (permanen atau berjangka).
-- **Sumber ditulis jurnalisnya**: platform besar tetap ditulis namanya, sedangkan platform kecil atau komunitas diganti nama jurnalis yang dikutip (Romano, Ornstein, Whitwell, dll.).
+- **Sumber ditulis jurnalisnya**: media golongan A/B ditulis namanya, sedangkan sumber lain diganti nama jurnalis yang dikutip (Romano, Ornstein, Whitwell, dll.).
 - **Draf opini berpov Anda**: balas (quote) sebuah berita, kirim `/opini`, dan bot membalas dengan draf opini.
-- **Pelabelan otomatis**: `[BREAKING NEWS]`, `[RESMI]`, `[RUMOR]`, `[TRANSFER]`, `[CEDERA]`, `[INTERVIEW]`, `[PUNDIT]`, `[DRAMA]`, `[PERTANDINGAN]`, `[BERITA]`.
-- **Kontrol lewat Telegram**: `/status`, `/pause`, `/resume`, `/cooldown`, `/batas`, `/sumber`, `/terakhir`, `/menunggu`, `/pengingat`, `/opini`, `/blokir`, `/nama`, `/jadwal`, `/klasemen`, `/statistik`, `/diagnosa`. Semua balasan bot mengutip perintah Anda.
+- **Pelabelan otomatis**: `[BREAKING NEWS]`, `[RESMI]`, `[RUMOR]`, `[SPEKULASI]`, `[TRANSFER]`, `[CEDERA]`, `[INTERVIEW]`, `[PUNDIT]`, `[DRAMA]`, `[PERTANDINGAN]`, `[BERITA]`.
+- **Kontrol lewat Telegram**: `/status`, `/pause`, `/resume`, `/cooldown`, `/batas`, `/sumber`, `/terakhir`, `/menunggu`, `/pengingat`, `/opini`, `/blokir`, `/nama`, `/jurnalis`, `/daftar`, `/dibuang`, `/jadwal`, `/klasemen`, `/statistik`, `/diagnosa`. Semua balasan bot mengutip perintah Anda.
 - **Pengingat terjadwal**: mis. masa berlaku token GitHub, dikirim beberapa hari sebelum kedaluwarsa.
 - **Peringatan kesehatan**: sumber yang mati dilaporkan dalam satu pesan gabungan, dan run yang gagal diberi tahu ke Telegram.
 - **Penjaga berita basi dan tidak relevan**: tanggal terbit diverifikasi dari halaman artikel, dan AI diminta menandai berita lama atau yang tidak berkaitan dengan Man Utd sehingga tidak ikut terkirim.
@@ -34,11 +38,38 @@ Mengumpulkan puluhan sumber, menyaring berita ganda, meringkasnya ke bahasa Indo
 ## Contoh pesan
 
 ```
-[RUMOR]
+[TRANSFER]
 
-Manchester United dilaporkan tertarik merekrut ... Menurut laporan tersebut, ...
+Casemiro sepakat memperpanjang kontrak hingga 2028, menurut David Ornstein.
 
-(BBC Sport, Sky Sports)
+Gelandang Manchester United itu menyetujui kontrak baru, menurut David Ornstein.
+──────────
+Casemiro has agreed a new contract until 2028, according to David Ornstein.
+
+The Manchester United midfielder has agreed a new deal, according to David Ornstein.
+
+Selengkapnya:
+https://...
+
+(Sky Sports, David Ornstein)
+```
+
+Untuk wawancara, isi diganti konteks dan kutipan:
+
+```
+[INTERVIEW]
+
+Bruno Fernandes menegaskan selalu memilih bertahan di United.
+
+Disampaikan kepada Sky Sports News.
+
+Bruno Fernandes: “Saya selalu memilih bertahan”, ujarnya kepada @SkySportsNews.
+──────────
+Bruno Fernandes says he has always chosen to stay at United.
+
+Speaking to Sky Sports News.
+
+Bruno Fernandes: “I always chose to be here”, told @SkySportsNews.
 ```
 
 Label ditampilkan **tebal** dan sumber *miring* di Telegram.
@@ -51,7 +82,7 @@ flowchart LR
     B --> C[Ambil 35+ sumber]
     C --> D[Saring: relevansi,<br/>umur, duplikat]
     D --> E[Gabung berita sama<br/>dan cooldown topik]
-    E --> F[Ringkas dan terjemahkan<br/>Gemini / Groq]
+    E --> F[Baca artikel, saring kredibilitas,<br/>tulis dua bahasa, periksa ulang<br/>Gemini / Groq / Cerebras / Mistral]
     F --> G[Telegram]
     B <--> H[(branch state)]
 ```
@@ -61,7 +92,7 @@ Setiap siklus berjalan sekitar satu menit. State (berita yang sudah dilihat, coo
 ## Struktur
 
 ```
-bot/            kode utama (pipeline, sumber, ringkasan, Telegram)
+bot/            kode utama (pipeline, sumber, ringkasan, draf, Telegram)
 config/         settings.yaml (aturan) dan sources.yaml (daftar sumber)
 scripts/        skrip simpan dan ambil state
 tests/          pengujian otomatis
@@ -77,8 +108,12 @@ Semua aturan ada di `config/settings.yaml`. Beberapa yang paling sering diubah:
 |---|---|---|
 | `cooldown.minutes` | 15 | Jeda untuk topik yang sama |
 | `rate.max_per_hour` | 10 | Batas pesan biasa per jam (BREAKING dan RESMI tanpa batas) |
-| `trend.hold_minutes` | 45 | Lama menunggu dukungan sumber lain bagi berita blog |
-| `max_item_age_hours` | 6 | Berita lebih tua dari ini diabaikan |
+| `trend.hold_minutes` | 30 | Lama menunggu dukungan sumber lain bagi berita blog |
+| `max_item_age_hours` | 4 | Berita lebih tua dari ini diabaikan |
+| `summary.body_max_chars` | 300 | Batas isi berita per bahasa (di luar headline dan kutipan) |
+| `llm.max_calls_per_run` | 40 | Batas panggilan AI (menulis dan memeriksa) per run |
+| `llm.max_seconds_per_run` | 240 | Setelah ini AI tidak dipanggil lagi di run itu |
+| `credibility` | A, B | Golongan media; sumber di luar daftar hanya lolos bila mengutip jurnalis tepercaya |
 | `dedupe.strong_threshold` | 0.5 | Ambang kemiripan berita yang sama |
 
 Daftar sumber ada di `config/sources.yaml`. Tambah atau nonaktifkan sumber cukup dengan mengedit satu baris.
@@ -89,7 +124,7 @@ Lihat **[docs/PANDUAN.md](docs/PANDUAN.md)**. Singkatnya: buat bot Telegram, amb
 
 ## Rahasia dan keamanan
 
-Token dan kunci API **hanya** disimpan di GitHub Secrets dan tidak pernah ada di kode. Isi artikel publik dikirim ke layanan AI (Gemini atau Groq) hanya untuk diringkas.
+Token dan kunci API **hanya** disimpan di GitHub Secrets dan tidak pernah ada di kode. Isi artikel publik dikirim ke layanan AI (Gemini, Groq, Cerebras, Mistral, atau OpenRouter) hanya untuk diringkas dan diperiksa.
 
 ## Pengujian
 
