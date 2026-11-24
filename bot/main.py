@@ -57,10 +57,14 @@ def main():
 
     llm.STATS = state.setdefault("ai", {})
     pipe = Pipeline(cfg, state, tg, None, log=print)
-    pipe.summarize = make_summarizer(cfg, env, history=pipe.recent_titles)
+    llm.BLOCKS = state.setdefault("ai_block", {})  # blokir kuota harian bertahan antar run
+    summ = make_summarizer(cfg, env, history=pipe.recent_titles, jr=lambda: pipe.jr)
+    pipe.summarize = summ
+    pipe.prepare = getattr(summ, "prepare", lambda story: None)
     pipe.checkpoint = lambda: S.save(path, state)  # state tersimpan tiap selesai kirim, walau run berhenti di tengah
     jobs = commands.handle(tg, state, cfg, env.get("TELEGRAM_CHAT_ID", ""))
     pipe.rel = T.build_relevance(cfg, state)  # daftar nama bisa berubah lewat /nama
+    pipe.jr = T.build_journalist_re(cfg, state)  # daftar jurnalis bisa berubah lewat /jurnalis
     if jobs:
         opini.process(jobs, state, cfg, env, tg, pipe)
     reminders.run(tg, state, cfg, time.time())

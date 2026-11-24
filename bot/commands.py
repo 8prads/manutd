@@ -20,6 +20,9 @@ HELP = (
     "/jadwal - jadwal 30 hari ke depan; /klasemen pl|ucl|uel|laliga|seriea|bundesliga|ligue1; /statistik - pertandingan terakhir\n"
     "/diagnosa - uji sumber data pertandingan\n"
     "/nama - lihat daftar kata kunci pemain/staf; /nama tambah Hojlund; /nama hapus Rashford; /nama reset\n"
+    "/jurnalis - lihat daftar jurnalis tepercaya; /jurnalis tambah Nama; /jurnalis hapus Nama; /jurnalis reset\n"
+    "/daftar - seluruh nama pemain, staf, jurnalis, dan pundit yang dikenali bot\n"
+    "/dibuang - 10 berita terakhir yang dibuang beserta alasannya\n"
     "/opini - balas (quote) sebuah berita lalu kirim /opini untuk draf opini berpov Anda; "
     "tambahkan arah atau panjang bila perlu, mis. /opini singkat Carrick perlu diberi waktu "
     "(pilihan panjang: singkat, panjang, atau 3 kalimat)\n"
@@ -28,13 +31,17 @@ HELP = (
 )
 
 
-def _ai_line(state):
+def _ai_line(state, cfg=None):
     a = state.get("ai") or {}
     if not any(k != "day" for k in a):
         return "AI hari ini: belum ada panggilan"
-    return (f"AI hari ini: Gemini {a.get('gemini_ok', 0)} ok/{a.get('gemini_fail', 0)} gagal; "
-            f"Groq {a.get('groq_ok', 0)} ok/{a.get('groq_fail', 0)} gagal; "
-            f"tautan Google News {a.get('decode_ok', 0)} terurai/{a.get('decode_fail', 0)} gagal")
+    from . import llm
+    names = list(((cfg or {}).get("llm") or {}).get("providers") or ["gemini", "groq"])
+    parts = [f"{llm.label_of(n)} {a.get(n + '_ok', 0)} ok/{a.get(n + '_fail', 0)} gagal" for n in names
+             if a.get(n + "_ok", 0) or a.get(n + "_fail", 0)]
+    chk = [f"{a.get('check_ok', 0)} ok", f"{a.get('check_issue', 0)} bermasalah", f"{a.get('check_skip', 0)} dilewati"]
+    return ("AI hari ini: " + "; ".join(parts or ["belum ada panggilan"]) + f"\nPemeriksaan AI: {', '.join(chk)}"
+            f"\nTautan Google News {a.get('decode_ok', 0)} terurai/{a.get('decode_fail', 0)} gagal")
 
 
 def _wib(ts):
@@ -50,6 +57,50 @@ def _decode_line(state):
         return f"OK  Google News decode: {llm.decode_check(urls)}"
     except Exception as e:
         return f"GAGAL  Google News decode: {type(e).__name__} {str(e)[:150]}"
+
+
+def _edit_list(cmd, title, ex_add, ex_del, args, state, add_key, rem_key, base, names):
+    """Daftar nama yang bisa diubah lewat Telegram (dipakai /nama dan /jurnalis): tambah, hapus, reset, atau tampilkan."""
+    sub, term = (args[0].lower() if args else "daftar"), " ".join(args[1:]).strip()
+    add, rem = state.setdefault(add_key, []), state.setdefault(rem_key, [])
+    low = lambda xs: [x.lower() for x in xs]
+    if sub == "tambah":
+        if not term:
+            return f"Format: {cmd} tambah <nama>, misalnya {cmd} tambah {ex_add}"
+        if term.lower() in low(rem):
+            rem[:] = [x for x in rem if x.lower() != term.lower()]
+            return f"{html.escape(term)} dimasukkan kembali. Berlaku mulai siklus berikutnya."
+        if term.lower() in low(base) + low(add):
+            return "Nama itu sudah ada di daftar."
+        add.append(term)
+        return f"Ditambahkan: {html.escape(term)}. Berlaku mulai siklus berikutnya."
+    if sub == "hapus":
+        if not term:
+            return f"Format: {cmd} hapus <nama>, misalnya {cmd} hapus {ex_del}"
+        if term.lower() in low(add):
+            add[:] = [x for x in add if x.lower() != term.lower()]
+            return f"Dihapus dari tambahan: {html.escape(term)}."
+        if term.lower() in low(base):
+            if term.lower() in low(rem):
+                return "Nama itu sudah dikeluarkan."
+            rem.append(term)
+            return f"Dikeluarkan: {html.escape(term)}. Berlaku mulai siklus berikutnya."
+        return f"Nama itu tidak ada di daftar. Lihat {cmd}."
+    if sub == "reset":
+        add.clear()
+        rem.clear()
+        return "Perubahan lewat Telegram dibatalkan; daftar kembali mengikuti config/settings.yaml."
+    return (f"<b>{title} ({len(names)})</b>\n" + html.escape(", ".join(names))
+            + (f"\n\nDitambah lewat Telegram: {html.escape(', '.join(add))}" if add else "")
+            + (f"\nDikeluarkan lewat Telegram: {html.escape(', '.join(rem))}" if rem else "")
+            + f"\n\nUbah: {cmd} tambah <nama>, {cmd} hapus <nama>, {cmd} reset")
+
+
+def _ai_lines(cfg):
+    """Uji satu panggilan kecil per penyedia AI untuk /diagnosa."""
+    import os
+    from . import llm
+    return llm.ai_ping(cfg, os.environ)
 
 
 def reply_for(cmd, args, state, cfg, now):
@@ -77,41 +128,26 @@ def reply_for(cmd, args, state, cfg, now):
         return "Sumber bermasalah:\n" + "\n".join(bad) if bad else "Semua sumber sehat."
     if cmd == "/nama":
         from . import text as T
-        sub, term = (args[0].lower() if args else "daftar"), " ".join(args[1:]).strip()
-        add, rem = state.setdefault("names_add", []), state.setdefault("names_remove", [])
-        low = lambda xs: [x.lower() for x in xs]
-        base = list(cfg.get("mu_names", []))
-        if sub == "tambah":
-            if not term:
-                return "Format: /nama tambah <nama>, misalnya /nama tambah Hojlund"
-            if term.lower() in low(rem):
-                rem[:] = [x for x in rem if x.lower() != term.lower()]
-                return f"{html.escape(term)} dimasukkan kembali. Berlaku mulai siklus berikutnya."
-            if term.lower() in low(base) + low(add):
-                return "Nama itu sudah ada di daftar."
-            add.append(term)
-            return f"Ditambahkan: {html.escape(term)}. Berlaku mulai siklus berikutnya."
-        if sub == "hapus":
-            if not term:
-                return "Format: /nama hapus <nama>, misalnya /nama hapus Rashford"
-            if term.lower() in low(add):
-                add[:] = [x for x in add if x.lower() != term.lower()]
-                return f"Dihapus dari tambahan: {html.escape(term)}."
-            if term.lower() in low(base):
-                if term.lower() in low(rem):
-                    return "Nama itu sudah dikeluarkan."
-                rem.append(term)
-                return f"Dikeluarkan: {html.escape(term)}. Berlaku mulai siklus berikutnya."
-            return "Nama itu tidak ada di daftar. Lihat /nama."
-        if sub == "reset":
-            add.clear()
-            rem.clear()
-            return "Perubahan lewat Telegram dibatalkan; daftar kembali mengikuti config/settings.yaml."
-        names = T.effective_names(cfg, state)
-        return (f"<b>Kata kunci nama ({len(names)})</b>\n" + html.escape(", ".join(names))
-                + (f"\n\nDitambah lewat Telegram: {html.escape(', '.join(add))}" if add else "")
-                + (f"\nDikeluarkan lewat Telegram: {html.escape(', '.join(rem))}" if rem else "")
-                + "\n\nUbah: /nama tambah <nama>, /nama hapus <nama>, /nama reset")
+        return _edit_list("/nama", "Kata kunci nama", "Hojlund", "Rashford", args, state, "names_add", "names_remove",
+                          list(cfg.get("mu_names", [])), T.effective_names(cfg, state))
+    if cmd == "/jurnalis":
+        from . import text as T
+        return _edit_list("/jurnalis", "Jurnalis tepercaya", "Jamie Jackson", "Mike Keegan", args, state,
+                          "journalists_add", "journalists_remove", list(cfg["people"]["trusted_journalists"]),
+                          T.effective_journalists(cfg, state))
+    if cmd == "/daftar":
+        from . import text as T
+        sec = lambda t, xs: f"<b>{t} ({len(xs)})</b>\n" + html.escape(", ".join(xs))
+        return "\n\n".join([sec("Pemain dan staf", T.effective_names(cfg, state)),
+                             sec("Jurnalis tepercaya", T.effective_journalists(cfg, state)),
+                             sec("Pundit", cfg["people"]["pundits"])])
+    if cmd == "/dibuang":
+        rows = state.get("dropped_log", [])[:10]
+        if not rows:
+            return "Belum ada berita yang dibuang."
+        return "<b>10 berita terakhir yang dibuang</b>\n\n" + "\n\n".join(
+            f"[{html.escape(x['why'])}] {html.escape(x['title'][:90])}\n{_wib(x['t'])} · {html.escape(', '.join(x.get('src', [])))}\n"
+            f"{html.escape(x.get('url', ''))}" for x in rows)
     if cmd == "/blokir":
         minutes = None
         if args and args[0].isdigit():
@@ -143,7 +179,7 @@ def reply_for(cmd, args, state, cfg, now):
         from . import football as F
         try:
             if cmd == "/diagnosa":
-                return "<b>Diagnosa sumber data</b>\n" + "\n".join(html.escape(x) for x in F.diagnose() + [_decode_line(state)])
+                return "<b>Diagnosa sumber data</b>\n" + "\n".join(html.escape(x) for x in F.diagnose() + [_decode_line(state)] + _ai_lines(cfg))
             if cmd == "/jadwal":
                 days = int(args[0]) if args and args[0].isdigit() else 30
                 prov, fx = F.get_fixtures(min(max(days, 1), 60))
@@ -186,7 +222,7 @@ def reply_for(cmd, args, state, cfg, now):
                 f"Terkirim 24 jam: {sent}\nMenunggu: {pend}\n"
                 f"Cooldown: {ov.get('cooldown_minutes', cfg['cooldown']['minutes'])} menit\n"
                 f"Batas: {ov.get('max_per_hour', cfg['rate']['max_per_hour'])} pesan/jam\n"
-                f"Sumber bermasalah: {bad}\n{_ai_line(state)}")
+                f"Sumber bermasalah: {bad}\n{_ai_line(state, cfg)}")
     return None
 
 
@@ -214,6 +250,8 @@ def handle(tg, state, cfg, chat_id, log=print):
             continue
         resp = reply_for(c, notes.split(), state, cfg, time.time())
         if resp:
-            tg.send(resp, reply_to=mid)
+            from .opini import split_message
+            for i, part in enumerate(split_message(resp)):
+                tg.send(part, reply_to=mid if i == 0 else None)
             log(f"perintah {cmd}")
     return jobs

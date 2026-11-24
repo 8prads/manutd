@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 STALE = "__STALE__"  # penanda: berita ternyata basi, jangan dikirim
 IRRELEVANT = "__IRRELEVANT__"  # penanda: berita tidak berkaitan dengan Man Utd
+DROP = "__DROP__"  # penanda: berita dibuang dengan alasan di story["drop_why"] (satir, bertentangan, tidak kredibel, gagal periksa)
 
 
 @dataclass

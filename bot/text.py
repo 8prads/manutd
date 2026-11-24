@@ -216,7 +216,7 @@ RE_DRAMA = re.compile(
     r"\b(row|clash|bust[- ]?up|feud|rift|fallout|unhappy|tension|furious|frozen out|dressing room|protest|backlash|"
     r"slam(?:s|med)?|blast(?:s|ed)?|criticis\w+)\b", re.I)
 
-LABEL_RANK = {"RUMOR": 1, "BREAKING NEWS": 3, "RESMI": 4}
+LABEL_RANK = {"RUMOR": 1, "SPEKULASI": 1, "BREAKING NEWS": 3, "RESMI": 4}
 
 
 def rank(label):
@@ -289,14 +289,58 @@ def format_message(label, body, sources, en="", link=""):
 
 
 # ---------- Jurnalis ----------
-def build_journalist_re(cfg):
-    p = cfg["people"]
-    aliases = p.get("journalist_aliases", {})
+def effective_journalists(cfg, state=None):
+    """Daftar jurnalis tepercaya: config + tambahan lewat Telegram - yang dikeluarkan lewat Telegram."""
+    st = state or {}
+    removed = {n.lower() for n in st.get("journalists_remove", [])}
     out = []
-    for name in p["trusted_journalists"]:
+    for n in list(cfg["people"]["trusted_journalists"]) + list(st.get("journalists_add", [])):
+        if n.lower() not in removed and n not in out:
+            out.append(n)
+    return out
+
+
+def build_journalist_re(cfg, state=None):
+    aliases = cfg["people"].get("journalist_aliases", {})
+    out = []
+    for name in effective_journalists(cfg, state):
         forms = sorted([name] + list(aliases.get(name, [])), key=len, reverse=True)
         out.append((name, re.compile(r"\b(?:%s)\b" % "|".join(re.escape(f) for f in forms), re.I)))
     return out
+
+
+# ---------- Kredibilitas sumber ----------
+def source_class(name, cfg):
+    """A = media utama/resmi, B = media andal, J = lainnya (hanya dipakai bila mengutip jurnalis tepercaya)."""
+    low = (name or "").strip().lower()
+    cred = cfg.get("credibility") or {}
+    for cls in ("A", "B"):
+        if low in {n.lower() for n in cred.get(cls, [])}:
+            return cls
+    return "J"
+
+
+def x_handle(media, cfg):
+    """Akun X media untuk atribusi kutipan; bila tidak ada di config, nama media apa adanya."""
+    m = (media or "").strip()
+    low = m.lower()
+    if not low:
+        return ""
+    for k, h in (cfg.get("x_handles") or {}).items():
+        kl = k.lower()
+        if kl == low or kl in low or low in kl:
+            return h
+    return m
+
+
+_BOILER = re.compile(
+    r"(?:(?<=[.!?\"\u201d])\s+|\n\s*)(?:The post .{0,200}? appeared first on .{0,100}|Read more\b|Related(?::| articles| stories| content)"
+    r"|You may also like|More from\b|Also read\b|Sign up to\b|Subscribe to\b|Advertisement\b).*$", re.I | re.S)
+
+
+def cut_boilerplate(s):
+    """Buang ekor artikel yang berisi iklan, ajakan berlangganan, atau daftar berita terkait."""
+    return _BOILER.sub("", s or "").strip()
 
 
 def find_journalists(text, jr):

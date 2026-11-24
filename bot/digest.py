@@ -23,6 +23,6 @@ def run(tg, state, cfg, now_ts, pipe):
     if not sent:
         return
     sent.sort(key=lambda s: (-T.rank(s["label"]), -len(s["sources"]), -s["sent_at"]))
-    lines = [f"{i}. [{s['label']}] {html.escape(_first(s['body'] or s['title']))}\n   ({html.escape(', '.join(pipe.source_names(s)))})"
+    lines = [f"{i}. [{s['label']}] {html.escape(_first((s['body'] or s['title']).split("\n\n")[0]))}\n   ({html.escape(', '.join(pipe.source_names(s)))})"
              for i, s in enumerate(sent[: d["top"]], 1)]
     tg.send("<b>[RINGKASAN PAGI]</b>\n\n" + "\n\n".join(lines) + "\n\n<i>(Berita terpenting 24 jam terakhir)</i>")

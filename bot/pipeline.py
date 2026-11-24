@@ -3,8 +3,9 @@ import re
 import time
 from datetime import datetime
 
+from . import draft as D
 from . import text as T
-from .models import IRRELEVANT, STALE
+from .models import DROP, IRRELEVANT, STALE
 from .reminders import WIB
 
 
@@ -17,7 +18,7 @@ class Pipeline:
         names = cfg["people"]["trusted_journalists"] + cfg["people"]["pundits"] + cfg.get("entities_seed", [])
         self.seed = {t for n in names for t in T.tokens(n)}
         self.jr = T.build_journalist_re(cfg)
-        self.big = {x.lower() for x in cfg.get("big_platforms", []) + cfg["tier1_names"]}
+        self.prepare = lambda story: None  # main mengisinya: ambil artikel (tanpa AI) sebelum AI dipanggil
         self.checkpoint = lambda: None  # main mengisinya: simpan state ke disk setiap selesai kirim
 
     # ---------- pengaturan (bisa diubah lewat Telegram) ----------
@@ -143,21 +144,29 @@ class Pipeline:
         return min(x["tier"] for x in s["sources"])
 
     def source_names(self, s):
-        """Platform besar ditulis apa adanya. Platform kecil/komunitas diganti nama jurnalis bila ada."""
+        """Media golongan A/B ditulis apa adanya. Sumber golongan J diganti nama jurnalis yang dikutip."""
         journ = list(s.get("journalists", []))
         order = sorted(enumerate(s["sources"]), key=lambda p: (p[1]["tier"], p[0]))
-        bigs, smalls = [], []
-        for _, x in order:
-            n = x["name"]
-            if n in journ:
-                continue
-            (bigs if n.lower() in self.big else smalls).append(n)
-        names = bigs + journ + ([] if journ else smalls)
+        names = [x["name"] for _, x in order if x["name"] not in journ and T.source_class(x["name"], self.cfg) in ("A", "B")]
         out = []
-        for n in names:
+        for n in names + journ:
             if n not in out:
                 out.append(n)
         return out or [s["sources"][0]["name"]]
+
+    def _has_ab(self, s):
+        return bool(s["official"] or any(T.source_class(x["name"], self.cfg) in ("A", "B") for x in s["sources"]))
+
+    def _credible(self, s):
+        """Dikirim hanya bila ada media golongan A/B, atau berita golongan J mengutip jurnalis tepercaya."""
+        return self._has_ab(s) or bool(s.get("journalists")) or bool(s["journalist"])
+
+    def _drop(self, s, reason):
+        s["status"], s["drop"] = "dropped", reason
+        log = self.st.setdefault("dropped_log", [])
+        log.insert(0, {"t": self.now(), "title": s["title"][:100], "why": reason, "src": self.source_names(s)[:3],
+                       "url": s["sources"][0]["url"] if s["sources"] else ""})
+        del log[30:]
 
     def _eligible(self, s):
         if s["official"] or s["journalist"] or self._best_tier(s) == 1:
@@ -234,7 +243,8 @@ class Pipeline:
         cut = self.now() - hours * 3600
         sent = sorted((s for s in self.st["stories"].values() if s["status"] == "sent" and (s["sent_at"] or 0) >= cut),
                       key=lambda s: s["sent_at"], reverse=True)[:n]
-        return [f"[{datetime.fromtimestamp(s['sent_at'], WIB).strftime('%d/%m %H.%M')} WIB] {s['title']}" for s in sent]
+        return [f"[{datetime.fromtimestamp(s['sent_at'], WIB).strftime('%d/%m %H.%M')} WIB] {s['title']} (sumber: {', '.join(self.source_names(s))})"
+                for s in sent]
 
     @staticmethod
     def _best_link(s):
@@ -242,10 +252,9 @@ class Pipeline:
         return order[0][1]["url"] if order else ""
 
     def _fallback_texts(self, s):
-        sentences = [x.strip() for x in (s["text"] or s["title"]).replace("\n", " ").split(". ") if x.strip()]
-        en = ". ".join(sentences[:3]) or s["title"]
-        if not en.endswith("."):
-            en += "."
+        """Bila AI gagal: judul asli dan cuplikan (Inggris) tanpa terjemahan."""
+        snippet = D.clip(s["text"] or "", self.cfg["summary"].get("body_max_chars", 300))
+        en = s["title"] + ("\n\n" + snippet if snippet and snippet != s["title"] else "")
         return "(Terjemahan belum tersedia karena layanan AI sedang bermasalah.)", en
 
     def _fallback_body(self, s):
@@ -284,16 +293,16 @@ class Pipeline:
         for s in pend:
             age = now - s["first_seen"]
             if age > tr["expire_minutes"] * 60:
-                s["status"], s["drop"] = "dropped", "kedaluwarsa"
+                self._drop(s, "kedaluwarsa")
                 continue
             if not self._eligible(s):
                 if age > tr["hold_minutes"] * 60:
-                    s["status"], s["drop"] = "dropped", "tidak naik"
+                    self._drop(s, "tidak naik")
                 continue
             early_link = self._best_link(s)
             ek = T.canonical_url(early_link) if early_link else ""
             if ek and now - self.st.setdefault("sent_links", {}).get(ek, 0) < 172800:
-                s["status"], s["drop"] = "dropped", "duplikat"  # tautan yang sama sudah pernah terkirim
+                self._drop(s, "duplikat")  # tautan yang sama sudah pernah terkirim
                 self.log(f"dibuang (duplikat tautan): {s['title'][:70]}")
                 continue
             label = self._label(s)
@@ -303,27 +312,37 @@ class Pipeline:
             if label not in unlimited and self._sent_last_hour() >= self.max_per_hour:
                 continue
             if label != "RESMI" and self.blocked(f"{s['title']} {s['text']}"):
-                s["status"], s["drop"] = "dropped", "diblokir"
+                self._drop(s, "diblokir")
+                continue
+            s["label_hint"] = label
+            self.prepare(s)  # ambil artikel dulu, supaya penyaringan kredibilitas memakai teks lengkap
+            if not self._credible(s):
+                self._drop(s, "tidak kredibel")
+                self.log(f"dibuang (tidak kredibel): {s['title'][:70]}")
                 continue
             raw = self.summarize(s)
-            if raw in (STALE, IRRELEVANT):
-                s["status"], s["drop"] = "dropped", "basi" if raw == STALE else "tidak relevan"
-                self.log(f"dibuang ({s['drop']}): {s['title'][:70]}")
+            if raw in (STALE, IRRELEVANT, DROP):
+                why = s.pop("drop_why", None) or {STALE: "basi", IRRELEVANT: "tidak relevan", DROP: "dibuang"}[raw]
+                self._drop(s, why)
+                self.log(f"dibuang ({why}): {s['title'][:70]}")
                 continue
+            ai_label = s.pop("ai_label", None)
+            if ai_label and label not in unlimited:
+                label = ai_label
             body, en = T.split_bilingual(raw)
             if (not body and not self._mentions_mu(s)) or (
                     not s.get("mu_only", True) and not self._mentions_mu(s, f"{body} {en}")):
                 # Hasil pencarian umum wajib menyebut Man Utd di judul, teks, atau ringkasan
-                s["status"], s["drop"] = "dropped", "tidak relevan"
+                self._drop(s, "tidak relevan")
                 self.log(f"dibuang (tidak menyebut Man Utd): {s['title'][:70]}")
                 continue
             if not body:
                 s["retries"] += 1
-                if s["retries"] <= self.cfg["summary"]["retry_cycles"]:
-                    continue
+                if s["retries"] <= self.cfg["summary"]["retry_cycles"] or not self._has_ab(s):
+                    continue  # berita tanpa media golongan A/B tidak dikirim tanpa AI
                 body, en = self._fallback_texts(s)
             if label != "RESMI" and self.blocked(f"{s['title']} {s['text']} {body} {en}"):
-                s["status"], s["drop"] = "dropped", "diblokir"
+                self._drop(s, "diblokir")
                 continue
             link = self._best_link(s)
             mid = self.tg.send(T.format_message(label, body, self.source_names(s), en, link))
@@ -365,3 +384,6 @@ class Pipeline:
         st["blocks"] = [b for b in st.get("blocks", []) if not b.get("until") or b["until"] > now]
         st["sent_log"] = [t for t in st["sent_log"] if now - t < 7200]
         st["sent_links"] = {k: v for k, v in st.get("sent_links", {}).items() if now - v < 172800}
+        blocks = st.get("ai_block", {})
+        for k in [k for k, v in blocks.items() if v <= now]:
+            del blocks[k]  # di tempat, karena llm.BLOCKS merujuk kamus yang sama
