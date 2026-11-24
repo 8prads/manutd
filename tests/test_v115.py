@@ -135,6 +135,7 @@ class TestModelSkipping(unittest.TestCase):
     def setUp(self):
         llm._SKIP.clear()
         llm._STRIKES.clear()
+        llm.BLOCKS = None
 
     tearDown = setUp
 
@@ -179,8 +180,8 @@ class TestModelSkipping(unittest.TestCase):
         self.assertEqual(calls, ["a", "b", "a", "b", "b"])
 
     def test_settings_drop_dead_groq_model(self):
-        self.assertEqual(CFG["llm"]["groq_models"][0], "openai/gpt-oss-120b")
-        self.assertNotIn("llama-3.3-70b-versatile", CFG["llm"]["groq_models"])
+        self.assertEqual(CFG["llm"]["providers"]["groq"]["models"][0], "openai/gpt-oss-120b")
+        self.assertNotIn("llama-3.3-70b-versatile", CFG["llm"]["providers"]["groq"]["models"])
 
 
 if __name__ == "__main__":

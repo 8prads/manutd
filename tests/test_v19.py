@@ -10,6 +10,11 @@ from bot import llm, text as T  # noqa: E402
 
 CFG = tp.CFG
 ARTICLE = ("Manchester United have agreed terms with the player, according to David Ornstein. " * 12)
+DRAFT = ('{"relevan": true, "basi": false, "konflik": false, "jenis": "berita", "kepastian": "dilaporkan", '
+         '"sumber_klaim": "David Ornstein", "bukti": "Manchester United have agreed terms with the player, according to David Ornstein.", '
+         '"headline_id": "Manchester United sepakat dengan pemain itu, kata Ornstein.", "isi_id": "Kesepakatan dilaporkan David Ornstein.", '
+         '"headline_en": "Manchester United have agreed terms with the player, says Ornstein.", "isi_en": "The deal was reported by David Ornstein.", '
+         '"kutipan": null}')
 
 
 class TestGoogleNewsDecode(unittest.TestCase):
@@ -26,7 +31,7 @@ class TestGoogleNewsDecode(unittest.TestCase):
         seen = {}
         with mock.patch.object(llm, "decode_gn", return_value="https://www.dailymail.co.uk/real"), \
                 mock.patch.object(llm, "fetch_article", return_value=(ARTICLE, None)) as fa, \
-                mock.patch.object(llm, "call_gemini", side_effect=lambda m, k, prompt, log, finish=None: seen.setdefault("p", prompt) and "Manchester United sepakat dengan pemain itu, kata Ornstein."):
+                mock.patch.object(llm, "call_gemini", side_effect=lambda m, k, prompt, log, finish=None: seen.setdefault("p", prompt) and DRAFT):
             out = summ(story)
         self.assertIn("Ornstein", out)
         self.assertEqual(story["sources"][0]["url"], "https://www.dailymail.co.uk/real")

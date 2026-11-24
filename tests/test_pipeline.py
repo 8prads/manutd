@@ -77,10 +77,12 @@ class TestPipeline(unittest.TestCase):
 
     def test_blog_needs_support_then_sent(self):
         pipe, tg = build()
-        pipe.ingest([item("Amad Diallo tipped for surprise start against Brighton", "MUFC Latest", tier=2)])
+        pipe.ingest([item("Amad Diallo tipped for surprise start against Brighton", "MUFC Latest", tier=2,
+                          text="Amad Diallo tipped for surprise start against Brighton, says Fabrizio Romano.")])
         pipe.dispatch()
         self.assertEqual(len(tg.sent), 0)
-        pipe.ingest([item("Amad Diallo expected to start against Brighton", "RedMancunian", tier=2)])
+        pipe.ingest([item("Amad Diallo expected to start against Brighton", "RedMancunian", tier=2,
+                          text="Amad Diallo expected to start against Brighton, says Fabrizio Romano.")])
         pipe.dispatch()
         self.assertEqual(len(tg.sent), 1)
 

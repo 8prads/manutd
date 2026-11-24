@@ -60,7 +60,7 @@ class TestSafeguards(unittest.TestCase):
         tg = tp.FakeTG()
         pipe = tp.Pipeline(CFG, S.new_state(), tg, lambda s: "Casemiro menyepakati kontrak baru dengan klub.",
                            now=tp.CLOCK, log=lambda *a: None)
-        pipe.ingest([tp.item("Casemiro agrees new contract", "MUFC Latest", tier=1)])
+        pipe.ingest([tp.item("Casemiro agrees new contract", "BBC Sport", tier=1)])
         pipe.dispatch()
         self.assertEqual(len(tg.sent), 1)
 

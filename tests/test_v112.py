@@ -254,10 +254,10 @@ class TestStaleContextAndStats(unittest.TestCase):
             seen["p"] = prompt
             return "BASI"
         with mock.patch.object(llm, "fetch_article", return_value=("", None)), mock.patch.object(llm, "call_gemini", fake):
-            self.assertEqual(summ(story), "BASI")
+            self.assertEqual(summ(story), STALE)
         self.assertIn("Manchester United diperkirakan akan memecat Carrick", seen["p"])
         self.assertIn("2 jam yang lalu", seen["p"])
-        self.assertIn(SEP, seen["p"])
+        self.assertIn("headline_en", seen["p"])
 
     def test_gemini_stats_and_thinking_fallback(self):
         llm.STATS = {}

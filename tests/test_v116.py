@@ -62,6 +62,7 @@ class TestServerBusy(unittest.TestCase):
     def setUp(self):
         llm._SKIP.clear()
         llm._STRIKES.clear()
+        llm.BLOCKS = None
 
     tearDown = setUp
 
