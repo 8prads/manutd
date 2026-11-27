@@ -84,7 +84,9 @@ class TestSummarizer(unittest.TestCase):
         idn, en = T.split_bilingual(out)
         self.assertTrue(idn.startswith("Casemiro sepakat memperpanjang kontrak hingga 2028.\n\n"))
         self.assertTrue(en.startswith("Casemiro has agreed a new contract until 2028.\n\n"))
-        self.assertLessEqual(len(en.split("\n\n", 1)[1]), 300)
+        body = en.split("\n\n", 1)[1]
+        self.assertEqual(body.count("Kalimat."), 5)  # dipotong di 5 kalimat
+        self.assertLessEqual(len(body), 1024)
 
     def test_flags_stale_irrelevant_satire_conflict(self):
         self.assertEqual(run(story(), fake_ai(draft(basi=True))), STALE)

@@ -36,7 +36,7 @@ def wib(y, m, d, h=0, mi=0):
 class TestBilingualFormat(unittest.TestCase):
     def test_message_layout(self):
         msg = T.format_message("BERITA", "Isi Indonesia.", ["Sky Sports", "Fabrizio Romano"], "English text.", "https://x.com/a?b=1&c=2")
-        self.assertEqual(msg, "<b>[BERITA]</b>\n\nIsi Indonesia.\n──────────\nEnglish text.\n\nSelengkapnya:\nhttps://x.com/a?b=1&amp;c=2"
+        self.assertEqual(msg, "<b>[BERITA]</b>\n\nIsi Indonesia.\n\n──────────\n\nEnglish text.\n\nSelengkapnya:\nhttps://x.com/a?b=1&amp;c=2"
                               "\n\n<i>(Sky Sports, Fabrizio Romano)</i>")
 
     def test_finish_parses_both_languages_and_rejects_meta(self):
@@ -52,7 +52,7 @@ class TestBilingualFormat(unittest.TestCase):
         pipe.ingest([tp.item("Casemiro agrees new contract", "BBC Sport", text="Manchester United midfielder Casemiro has agreed.")])
         pipe.dispatch()
         text = tg.sent[0][1]
-        self.assertIn("Casemiro sepakat kontrak baru.\n──────────\nCasemiro agrees new contract.", text)
+        self.assertIn("Casemiro sepakat kontrak baru.\n\n──────────\n\nCasemiro agrees new contract.", text)
         self.assertIn("Selengkapnya:\nhttps://x/BBC Sport/Casemiro agrees new contract", text)
         pipe2, tg2 = tp.build()
         pipe2.summarize = lambda s: None
@@ -254,10 +254,10 @@ class TestStaleContextAndStats(unittest.TestCase):
             seen["p"] = prompt
             return "BASI"
         with mock.patch.object(llm, "fetch_article", return_value=("", None)), mock.patch.object(llm, "call_gemini", fake):
-            self.assertEqual(summ(story), STALE)
+            self.assertEqual(summ(story), "BASI")
         self.assertIn("Manchester United diperkirakan akan memecat Carrick", seen["p"])
         self.assertIn("2 jam yang lalu", seen["p"])
-        self.assertIn("headline_en", seen["p"])
+        self.assertIn(SEP, seen["p"])
 
     def test_gemini_stats_and_thinking_fallback(self):
         llm.STATS = {}
