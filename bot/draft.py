@@ -7,6 +7,9 @@ NUM_WORDS = {"ten": "10", "eleven": "11", "twelve": "12", "thirteen": "13", "fou
 _CURLY = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"', "\u2013": "-", "\u2014": "-", "\u00a0": " "})
 _ELLIPSIS = re.compile(r"\.{3}|\u2026")
 _NUM = re.compile(r"\d[\d.,]*\d|\d")
+# Akhir kalimat: tanda baca (boleh diikuti tanda kutip/kurung), lalu spasi dan kata yang tidak diawali huruf kecil
+# (supaya "Dr. smith" atau angka desimal tidak dianggap akhir kalimat), atau akhir teks.
+_SENT_END = re.compile(r"[.!?][\"'\u201d\u2019)]*(?=\s+(?![a-z])\S|\s*$)")
 
 
 def norm(s):
@@ -52,14 +55,17 @@ def headline(s, prefix=""):
     return h
 
 
-def clip(text, limit):
-    """Potong di akhir kalimat terakhir yang masih muat dalam batas karakter."""
+def clip(text, limit, max_sentences=0):
+    """Potong di akhir kalimat: paling banyak max_sentences kalimat (0 = bebas) dan paling banyak limit karakter."""
     t = one_line(text)
+    ends = [m.end() for m in _SENT_END.finditer(t)]
+    if max_sentences and len(ends) > max_sentences:
+        t, ends = t[:ends[max_sentences - 1]], ends[:max_sentences]
     if len(t) <= limit:
         return t
-    ends = [m.end() for m in re.finditer(r"[.!?](?=\s|$)", t) if m.end() <= limit]
-    if ends:
-        return t[:ends[-1]]
+    fit = [e for e in ends if e <= limit]
+    if fit:
+        return t[:fit[-1]]
     return t[: limit - 1].rsplit(" ", 1)[0].rstrip(",;:") + "."
 
 
@@ -113,8 +119,9 @@ def quote_block(speaker, quotes, who, lang, max_chars=1200):
         qs.pop()
 
 
-def assemble(d, label, limit, who_fn, content):
-    """Susun (teks_id, teks_en, jumlah_kutipan) dari JSON AI: headline, lalu isi (atau konteks + kutipan)."""
+def assemble(d, label, limit, who_fn, content, max_sentences=5):
+    """Susun (teks_id, teks_en, jumlah_kutipan) dari JSON AI: headline, lalu isi (atau konteks + kutipan).
+    Isi dibatasi max_sentences kalimat dan limit karakter per bahasa."""
     p_en, p_id = ("OFFICIAL:", "RESMI:") if label == "RESMI" else ("", "")
     h_en, h_id = headline(d["headline_en"], p_en), headline(d["headline_id"], p_id)
     q = verified_quotes(d.get("kutipan"), content) if str(d.get("jenis", "")).lower() == "wawancara" else None
@@ -123,7 +130,7 @@ def assemble(d, label, limit, who_fn, content):
     if q:
         who = who_fn(q["media"])
         tr = q["terjemahan"] if all(q["terjemahan"]) else q["teks"]
-        en = [h_en] + ([q["konteks_en"]] if q["konteks_en"] else []) + [quote_block(q["pembicara"], q["teks"], who, "en")]
-        idn = [h_id] + ([q["konteks_id"]] if q["konteks_id"] else []) + [quote_block(q["pembicara"], tr, who, "id")]
+        en = [h_en] + ([q["konteks_en"]] if q["konteks_en"] else []) + [quote_block(q["pembicara"], q["teks"], who, "en", limit)]
+        idn = [h_id] + ([q["konteks_id"]] if q["konteks_id"] else []) + [quote_block(q["pembicara"], tr, who, "id", limit)]
         return "\n\n".join(idn), "\n\n".join(en), len(q["teks"])
-    return (f"{h_id}\n\n{clip(d['isi_id'], limit)}", f"{h_en}\n\n{clip(d['isi_en'], limit)}", 0)
+    return (f"{h_id}\n\n{clip(d['isi_id'], limit, max_sentences)}", f"{h_en}\n\n{clip(d['isi_en'], limit, max_sentences)}", 0)

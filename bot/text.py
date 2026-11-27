@@ -281,12 +281,12 @@ def _cut(text, limit):
 
 
 def format_message(label, body, sources, en="", link=""):
-    """[LABEL] / isi Indonesia / garis / isi Inggris / Selengkapnya: tautan / (sumber)."""
+    """[LABEL] / isi Indonesia / garis pemisah / isi Inggris / Selengkapnya: tautan / (sumber)."""
     esc = html.escape
     body, en = _cut((body or "").strip(), 1700), _cut((en or "").strip(), 1700)
     parts = [f"<b>[{esc(label)}]</b>", "", esc(body)]
     if en:
-        parts += [DIVIDER, esc(en)]
+        parts += ["", DIVIDER, "", esc(en)]
     if link:
         parts += ["", "Selengkapnya:", esc(link)]
     parts += ["", f"<i>({esc(', '.join(sources))})</i>"]
