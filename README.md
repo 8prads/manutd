@@ -19,7 +19,7 @@ Mengumpulkan puluhan sumber, menyaring berita ganda, meringkasnya ke bahasa Indo
 - **Anti-ganda**: berita yang sama dari banyak sumber hanya dikirim sekali. Sumber tambahan digabung ke pesan lama dengan mengedit pesan itu.
 - **Cooldown topik**: topik yang baru dikirim ditahan selama 15 menit (default). Kabar yang naik tingkat, misalnya rumor menjadi resmi, tetap langsung lewat.
 - **Filter tren**: berita dari blog baru dikirim jika didukung sumber lain atau ramai di Reddit.
-- **Headline dan isi singkat** dalam dua bahasa (Indonesia dan Inggris): satu kalimat headline yang ditulis ulang dengan bahasa sendiri dan berdiri sendiri (siap diposting terpisah), lalu isi maksimal 300 karakter yang memuat poin pentingnya, dengan tautan sumber.
+- **Headline dan isi singkat** dalam dua bahasa (Indonesia dan Inggris): satu kalimat headline yang ditulis ulang dengan bahasa sendiri dan berdiri sendiri (siap diposting terpisah), dibuat sedikit memancing rasa penasaran tanpa berlebihan dan bukan kalimat tanya, lalu isi yang merangkum seluruh berita dalam maksimal 5 kalimat (maksimal 1024 karakter per bahasa) dengan poin utamanya, dan tautan sumber.
 - **Kutipan wawancara persis**: hanya berita yang inti-nya wawancara atau konferensi pers (ditentukan AI; berita yang sekadar menyisipkan kutipan tetap berformat berita biasa) memuat konteks lalu kutipan dalam format `Nama: “kutipan”. “kutipan”, told @Media.` Kutipan Inggris diperiksa kode agar benar-benar ada di artikel (tidak mungkin karangan AI); versi Indonesia berisi terjemahannya.
 - **Membaca artikel penuh dan menyaring kredibilitas**: bot mengambil teks utama artikel (iklan dan berita terkait dibuang), menentukan jenis tulisan, tingkat kepastian, dan sumber klaim. Media golongan A/B dikirim langsung. Sumber lain (Football365, CaughtOffside, GiveMeSport, Mail, Mirror, blog) hanya dikirim bila mengutip jurnalis tepercaya dengan kalimat bukti dari artikel. Satir dibuang, opini dan prediksi berlabel `[SPEKULASI]`, dan klaim yang bertentangan dengan laporan yang lebih kredibel dibuang.
 - **Pemeriksaan ulang**: kode memeriksa angka dan kutipan terhadap artikel, lalu AI kedua (dari penyedia berbeda) memeriksa makna, tingkat kepastian, dan sumber untuk berita transfer, kontrak, cedera, pelatih, rumor, dan spekulasi. Draf yang bermasalah ditulis ulang sekali, dan dibuang bila masih salah.
@@ -108,7 +108,8 @@ Semua aturan ada di `config/settings.yaml`. Beberapa yang paling sering diubah:
 | `rate.max_per_hour` | 10 | Batas pesan biasa per jam (BREAKING dan RESMI tanpa batas) |
 | `trend.hold_minutes` | 30 | Lama menunggu dukungan sumber lain bagi berita blog |
 | `max_item_age_hours` | 4 | Berita lebih tua dari ini diabaikan |
-| `summary.body_max_chars` | 300 | Batas isi berita per bahasa (di luar headline dan kutipan) |
+| `summary.body_max_chars` | 1024 | Batas karakter isi berita per bahasa (di luar headline) |
+| `summary.max_sentences` | 5 | Batas kalimat isi berita per bahasa |
 | `llm.max_calls_per_run` | 40 | Batas panggilan AI (menulis dan memeriksa) per run |
 | `llm.max_seconds_per_run` | 240 | Setelah ini AI tidak dipanggil lagi di run itu |
 | `credibility` | A, B | Golongan media; sumber di luar daftar hanya lolos bila mengutip jurnalis tepercaya |

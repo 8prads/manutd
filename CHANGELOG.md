@@ -2,6 +2,13 @@
 
 Setiap versi mencantumkan file yang berubah, supaya mudah menimpa file yang tepat di repo.
 
+## v1.20 - Headline pemancing penasaran, isi kembali 5 kalimat
+- Headline: tetap satu kalimat formal, tetapi disusun memancing rasa penasaran (subjek dan pokok peristiwa disebut, satu detail penting disisakan untuk isi). Dilarang berupa kalimat tanya, memakai tanda seru, huruf kapital berlebihan, tiga titik, atau kata dramatis; tidak boleh terdengar lebih pasti daripada isi berita (rumor tetap terbaca rumor). Pemeriksa AI kini juga menandai headline yang menyesatkan.
+- Isi: kembali merangkum seluruh isi berita, maksimal 5 kalimat (`summary.max_sentences`) dan 1024 karakter per bahasa (`summary.body_max_chars`, sebelumnya 300), memuat poin utama berita dan menjawab hal yang dipancing headline. Batas kalimat dan karakter dijaga kode (`draft.clip`); format kutipan wawancara ikut batas karakter yang sama.
+- Pemisah bahasa: garis kini selalu berdiri sendiri dengan baris kosong di atas dan bawahnya.
+- Penyedia AI: respons HTTP 410 (model sudah dicabut penyedia) kini dilewati 24 jam seperti 404, sehingga model mati tidak dicoba ulang tiap run.
+- File: `bot/llm.py`, `bot/draft.py`, `bot/text.py`, `config/settings.yaml`, `README.md`, `docs/PANDUAN.md`, `tests/test_v112.py`, `tests/test_v118.py`, `tests/test_v120.py` (baru), `CHANGELOG.md`.
+
 ## v1.19 - Pemantauan YouTube, penyedia AI gratis lengkap, kredit Cerebras
 - Pemantauan YouTube (`bot/video.py`, YouTube Data API v3, tanpa AI): kanal di `youtube.channels` dipantau tiap 10 menit. Wawancara dan konferensi pers pemain atau petinggi Man Utd dikirim sebagai [VIDEO]; siaran terjadwal sebagai [SIARAN TERJADWAL], lalu [LIVE SEBENTAR LAGI] (30 menit sebelumnya) dan [LIVE], dengan jam WIB dan GMT. Kanal dicari lewat handle lalu nama, dan hasilnya tampil di `/diagnosa`. Pemakaian dibatasi (unit harian dan jatah pencarian); kuota habis atau kunci ditolak menjeda pemantauan dan mengirim peringatan.
 - Artikel resmi atau media utama yang mengumumkan jam siaran ("watch live", "how to watch", MUTV) berlabel baru [SIARAN].
