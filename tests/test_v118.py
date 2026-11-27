@@ -125,7 +125,7 @@ class TestSummarizer(unittest.TestCase):
              "teks": ["Two summers ago, three summers ago, last summer, I always had the chance to leave United and I always chose to be here",
                       "I've always showed how much I care about the club", "an invented extra quote nobody said"],
              "terjemahan": ["Dua musim panas lalu, tiga musim panas lalu, musim panas kemarin, saya selalu punya kesempatan pergi", "Saya selalu menunjukkan kepedulian saya", "palsu"]}
-        out = run(story(label_hint="INTERVIEW"), fake_ai(draft(kutipan=k)))
+        out = run(story(label_hint="INTERVIEW"), fake_ai(draft(jenis="wawancara", kutipan=k)))
         idn, en = T.split_bilingual(out)
         self.assertEqual(en.split("\n\n")[1], "Speaking to Sky Sports News.")
         self.assertTrue(en.split("\n\n")[2].startswith("Bruno Fernandes: \u201cTwo summers ago"))
@@ -189,8 +189,11 @@ class TestRouter(unittest.TestCase):
 
     def test_order_missing_keys_and_avoid(self):
         full = {p["key_env"]: "k" for p in CFG["llm"]["providers"].values()}
-        self.assertEqual(llm.providers_for(CFG, full, "write"), ["gemini", "groq", "cerebras", "mistral", "openrouter"])
-        self.assertEqual(llm.providers_for(CFG, full, "check", avoid="groq"), ["cerebras", "mistral", "gemini", "openrouter", "groq"])
+        full["CLOUDFLARE_ACCOUNT_ID"] = "acc"
+        self.assertEqual(llm.providers_for(CFG, full, "write"),
+                         ["gemini", "groq", "github", "sambanova", "openrouter", "zai", "nvidia", "cloudflare", "cerebras", "mistral"])
+        self.assertEqual(llm.providers_for(CFG, full, "check", avoid="groq"),
+                         ["cerebras", "github", "sambanova", "cloudflare", "openrouter", "zai", "nvidia", "gemini", "mistral", "groq"])
         self.assertEqual(llm.providers_for(CFG, {"GROQ_API_KEY": "k"}, "write"), ["groq"])
         self.assertEqual(llm.providers_for(CFG, {"GROQ_API_KEY": "k"}, "check", avoid="groq"), ["groq"])
 
@@ -198,7 +201,7 @@ class TestRouter(unittest.TestCase):
         env = {"GEMINI_API_KEY": "k", "CEREBRAS_API_KEY": "k"}
         seen = []
 
-        def fake(name, p, key, prompt, log, finish):
+        def fake(name, p, key, prompt, log, finish, env=None):
             seen.append(name)
             return "hasil" if name == "cerebras" else None
         with mock.patch.object(llm, "_call_provider", fake):
