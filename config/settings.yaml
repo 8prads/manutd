@@ -61,7 +61,8 @@ summary:
   long_article_chars: 2500     # artikel lebih panjang dari ini = ringkasan lebih panjang
   max_article_chars: 6000
   retry_cycles: 2              # coba ulang terjemahan sebelum memakai ringkasan Inggris
-  body_max_chars: 300          # batas isi berita per bahasa (di luar headline dan kutipan)
+  body_max_chars: 1024         # batas karakter isi berita per bahasa (di luar headline)
+  max_sentences: 5             # batas kalimat isi berita per bahasa
 
 llm:
   # Penyedia AI. Penyedia tanpa kunci di GitHub Secrets dilewati otomatis; `enabled: false` mematikannya.
