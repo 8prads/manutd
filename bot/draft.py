@@ -117,7 +117,9 @@ def assemble(d, label, limit, who_fn, content):
     """Susun (teks_id, teks_en, jumlah_kutipan) dari JSON AI: headline, lalu isi (atau konteks + kutipan)."""
     p_en, p_id = ("OFFICIAL:", "RESMI:") if label == "RESMI" else ("", "")
     h_en, h_id = headline(d["headline_en"], p_en), headline(d["headline_id"], p_id)
-    q = verified_quotes(d.get("kutipan"), content) if label in ("INTERVIEW", "PUNDIT") else None
+    q = verified_quotes(d.get("kutipan"), content) if str(d.get("jenis", "")).lower() == "wawancara" else None
+    if q and sum(len(t) for t in q["teks"]) < 80:
+        q = None  # kutipan terlalu pendek untuk disebut wawancara: pakai format berita biasa
     if q:
         who = who_fn(q["media"])
         tr = q["terjemahan"] if all(q["terjemahan"]) else q["teks"]

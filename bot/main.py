@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-from . import commands, digest, llm, matchday, opini, reminders, state as S, text as T
+from . import commands, digest, llm, matchday, opini, reminders, video, state as S, text as T
 from .llm import make_summarizer
 from .pipeline import Pipeline
 from .sources import fetch_all
@@ -47,6 +47,13 @@ def update_health(results, state, tg, threshold, quiet=()):
         tg.send("<b>[SUMBER PULIH]</b>\n\nKembali normal: " + ", ".join(recovered))
 
 
+def flush_notices(tg):
+    """Kirim peringatan AI yang terkumpul selama run (mis. kredit habis), lalu kosongkan."""
+    for n in llm.NOTICES:
+        tg.send(n)
+    llm.NOTICES.clear()
+
+
 def main():
     env = os.environ
     dry = env.get("DRY_RUN") == "1"
@@ -70,6 +77,7 @@ def main():
     reminders.run(tg, state, cfg, time.time())
     if state["paused"]:
         print("dijeda")
+        flush_notices(tg)
         state["last_run"] = time.time()
         S.save(path, state)
         return
@@ -77,7 +85,8 @@ def main():
     active = {x["id"] for x in srcs if x.get("enabled") is not False}
     state["feeds"] = {k: v for k, v in state["feeds"].items() if k in active}
     for name, job in (("ringkasan pagi", lambda: digest.run(tg, state, cfg, time.time(), pipe)),
-                      ("pengingat pertandingan", lambda: matchday.run(tg, state, cfg, time.time()))):
+                      ("pengingat pertandingan", lambda: matchday.run(tg, state, cfg, time.time())),
+                      ("video YouTube", lambda: video.run(tg, state, cfg, env, time.time(), pipe.rel[0]))):
         try:
             job()
         except Exception as e:  # fitur tambahan tidak boleh menghentikan pengiriman berita
@@ -110,6 +119,7 @@ def main():
         pipe.refresh_edits()
     for sid in fresh:
         feeds[sid]["seeded"] = True
+    flush_notices(tg)
     pipe.prune()
     state["last_run"], state["runs"] = time.time(), state["runs"] + 1
     S.save(path, state)

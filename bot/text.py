@@ -211,6 +211,9 @@ RE_OFFICIAL = re.compile(
     r"\b(official(?:ly)?|club statement|here we go|done deal|completes? (?:the )?(?:signing|transfer|move)|"
     r"announces?|confirm(?:s|ed)? (?:the )?(?:signing|departure|appointment|exit))\b", re.I)
 RE_BREAKING = re.compile(r"\b(breaking|just in|bombshell|sacked|relieved of his duties|passed away|dies)\b", re.I)
+RE_BROADCAST = re.compile(
+    r"\b(watch (?:it )?live|how to watch|where to watch|live on mutv|live ?stream(?:ing)?|streamed live|"
+    r"press conference (?:live|today|at \d|will be|to be))\b|\bmutv\b", re.I)
 RE_QUOTE = re.compile(r"\b(says?|said|told|interview|press conference|pre-match|post-match|admits?|reveals?|insists?|speaks?|warns?)\b", re.I)
 RE_DRAMA = re.compile(
     r"\b(row|clash|bust[- ]?up|feud|rift|fallout|unhappy|tension|furious|frozen out|dressing room|protest|backlash|"
@@ -231,6 +234,8 @@ def build_pundit_re(cfg):
 
 def classify(title, text, official, strong_source, sources_count, etype, pundit_re):
     blob = f"{title}. {text[:400]}"
+    if RE_BROADCAST.search(title) and (official or strong_source):
+        return "SIARAN"  # pengumuman jam siaran langsung konferensi pers atau wawancara
     if official and etype != "match" and not RE_QUOTE.search(title):
         return "RESMI"
     if strong_source and RE_OFFICIAL.search(title) and not RE_HEDGE.search(title):

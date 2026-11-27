@@ -23,6 +23,7 @@ HELP = (
     "/jurnalis - lihat daftar jurnalis tepercaya; /jurnalis tambah Nama; /jurnalis hapus Nama; /jurnalis reset\n"
     "/daftar - seluruh nama pemain, staf, jurnalis, dan pundit yang dikenali bot\n"
     "/dibuang - 10 berita terakhir yang dibuang beserta alasannya\n"
+    "/ai - status tiap penyedia AI; /ai tutup cerebras 30; /ai buka cerebras (atau semua)\n"
     "/opini - balas (quote) sebuah berita lalu kirim /opini untuk draf opini berpov Anda; "
     "tambahkan arah atau panjang bila perlu, mis. /opini singkat Carrick perlu diberi waktu "
     "(pilihan panjang: singkat, panjang, atau 3 kalimat)\n"
@@ -96,6 +97,18 @@ def _edit_list(cmd, title, ex_add, ex_del, args, state, add_key, rem_key, base, 
             + f"\n\nUbah: {cmd} tambah <nama>, {cmd} hapus <nama>, {cmd} reset")
 
 
+def _video_line(cfg, state):
+    """Uji pemantauan YouTube untuk /diagnosa: kanal yang dikenali dan pemakaian unit."""
+    import os
+    from . import video
+    if not os.environ.get("YOUTUBE_API_KEY"):
+        return "LEWATI  YouTube: tanpa kunci YOUTUBE_API_KEY"
+    try:
+        return f"OK  YouTube: {video.check(cfg, os.environ, state)}"
+    except Exception as e:
+        return f"GAGAL  YouTube: {type(e).__name__} {str(e)[:150]}"
+
+
 def _ai_lines(cfg):
     """Uji satu panggilan kecil per penyedia AI untuk /diagnosa."""
     import os
@@ -141,6 +154,27 @@ def reply_for(cmd, args, state, cfg, now):
         return "\n\n".join([sec("Pemain dan staf", T.effective_names(cfg, state)),
                              sec("Jurnalis tepercaya", T.effective_journalists(cfg, state)),
                              sec("Pundit", cfg["people"]["pundits"])])
+    if cmd == "/ai":
+        import os
+        from . import llm
+        provs, blocks = cfg["llm"]["providers"], state.setdefault("ai_block", {})
+        sub, name = (args[0].lower() if args else ""), (args[1].lower() if len(args) > 1 else "")
+        if sub in ("buka", "tutup"):
+            if sub == "buka" and name == "semua":
+                blocks.clear()
+                llm._SKIP.clear()
+                return "Semua blokir penyedia AI dibuka."
+            if name not in provs:
+                return "Format: /ai buka <nama|semua> atau /ai tutup <nama> [hari]. Nama: " + ", ".join(provs)
+            if sub == "buka":
+                for k in [k for k in blocks if k == name or k.startswith(name + ":")]:
+                    del blocks[k]
+                return f"{llm.label_of(name)} dibuka kembali."
+            days = int(args[2]) if len(args) > 2 and args[2].isdigit() else 30
+            blocks[name] = now + days * 86400
+            return f"{llm.label_of(name)} ditutup {days} hari. Buka lagi dengan /ai buka {name}."
+        return ("<b>Penyedia AI</b>\n" + "\n".join(html.escape(x) for x in llm.ai_status(cfg, os.environ, state))
+                + "\n\nUbah: /ai tutup <nama> [hari], /ai buka <nama|semua>")
     if cmd == "/dibuang":
         rows = state.get("dropped_log", [])[:10]
         if not rows:
@@ -179,7 +213,7 @@ def reply_for(cmd, args, state, cfg, now):
         from . import football as F
         try:
             if cmd == "/diagnosa":
-                return "<b>Diagnosa sumber data</b>\n" + "\n".join(html.escape(x) for x in F.diagnose() + [_decode_line(state)] + _ai_lines(cfg))
+                return "<b>Diagnosa sumber data</b>\n" + "\n".join(html.escape(x) for x in F.diagnose() + [_decode_line(state)] + [_video_line(cfg, state)] + _ai_lines(cfg))
             if cmd == "/jadwal":
                 days = int(args[0]) if args and args[0].isdigit() else 30
                 prov, fx = F.get_fixtures(min(max(days, 1), 60))
