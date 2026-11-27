@@ -2,6 +2,15 @@
 
 Setiap versi mencantumkan file yang berubah, supaya mudah menimpa file yang tepat di repo.
 
+## v1.19 - Pemantauan YouTube, penyedia AI gratis lengkap, kredit Cerebras
+- Pemantauan YouTube (`bot/video.py`, YouTube Data API v3, tanpa AI): kanal di `youtube.channels` dipantau tiap 10 menit. Wawancara dan konferensi pers pemain atau petinggi Man Utd dikirim sebagai [VIDEO]; siaran terjadwal sebagai [SIARAN TERJADWAL], lalu [LIVE SEBENTAR LAGI] (30 menit sebelumnya) dan [LIVE], dengan jam WIB dan GMT. Kanal dicari lewat handle lalu nama, dan hasilnya tampil di `/diagnosa`. Pemakaian dibatasi (unit harian dan jatah pencarian); kuota habis atau kunci ditolak menjeda pemantauan dan mengirim peringatan.
+- Artikel resmi atau media utama yang mengumumkan jam siaran ("watch live", "how to watch", MUTV) berlabel baru [SIARAN].
+- Kutipan wawancara hanya untuk berita yang inti-nya wawancara atau konferensi pers (jenis "wawancara" dari AI, dengan kutipan terverifikasi minimal 80 karakter). Berita yang hanya menyisipkan kutipan memakai format berita biasa; label [INTERVIEW] yang dipicu kata "says" di judul diturunkan menjadi [BERITA], dan wawancara dengan judul lain dinaikkan menjadi [INTERVIEW].
+- Penyedia AI baru: GitHub Models (tanpa kunci tambahan), SambaNova, Z.ai, NVIDIA NIM, Cloudflare Workers AI (butuh `CLOUDFLARE_ACCOUNT_ID` juga); Cohere tersedia tetapi dimatikan (kunci uji coba non-komersial). Opsi per penyedia: `enabled`, `needs`, `extra`, `credit_based`, `active_until`, `max_per_day`, `min_interval_seconds`; url boleh memuat `{NAMA_VARIABEL}`.
+- Kredit habis: HTTP 402 (atau pesan kredit habis atau kedaluwarsa, atau 403 pada penyedia berbasis kredit) menutup penyedia 30 hari dan mengirim peringatan Telegram; kunci ditolak (401) menutupnya 6 jam; model 404 dilewati 24 jam dan 403 selama 6 jam; semuanya bertahan antar run. Perintah baru `/ai` (status, `/ai tutup <nama> [hari]`, `/ai buka <nama|semua>`).
+- `/diagnosa` menampilkan baris YouTube dan menguji semua penyedia AI.
+- File: `bot/video.py` (baru), `bot/llm.py`, `bot/draft.py`, `bot/text.py`, `bot/main.py`, `bot/commands.py`, `config/settings.yaml`, `.github/workflows/news.yml`, `docs/news.yml`, `.env.example`, `README.md`, `docs/PANDUAN.md`, `tests/test_v118.py`, `tests/test_v119.py` (baru), `CHANGELOG.md`.
+
 ## v1.18 - Headline, kutipan persis, kredibilitas sumber, pemeriksaan AI, multi-penyedia
 - Format pesan: tiap bahasa berisi headline satu kalimat (ditulis ulang, berdiri sendiri), lalu isi maksimal 300 karakter (`summary.body_max_chars`, dijaga kode). Berita [RESMI] berawalan "RESMI:" atau "OFFICIAL:". Ringkasan pagi memakai headline.
 - Wawancara ([INTERVIEW], [PUNDIT]): konteks lalu kutipan berformat `Nama: “kutipan”. “kutipan”, told @Media.`; kutipan Inggris diperiksa kode persis terhadap artikel (yang tidak ada dibuang), versi Indonesia berisi terjemahan. Akun media ada di `x_handles`.
