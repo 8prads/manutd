@@ -64,8 +64,11 @@ summary:
   body_max_chars: 300          # batas isi berita per bahasa (di luar headline dan kutipan)
 
 llm:
-  # Penyedia AI. Penyedia tanpa kunci di GitHub Secrets dilewati otomatis. Nama model bisa diganti bila 404.
-  # Kuota harian yang habis disimpan di state, sehingga penyedia itu tidak dipanggil lagi sampai reset.
+  # Penyedia AI. Penyedia tanpa kunci di GitHub Secrets dilewati otomatis; `enabled: false` mematikannya.
+  # Nama model bisa diganti bila 404 (bot melewatinya 24 jam). Kuota harian yang habis disimpan di state sampai reset.
+  # Kredit habis atau kedaluwarsa (402) menutup penyedia 30 hari dan mengirim peringatan; buka lagi dengan /ai buka <nama>.
+  # Opsi per penyedia: min_interval_seconds (jeda antar panggilan), max_per_day (batas harian buatan sendiri),
+  # credit_based (403 dianggap kredit habis), active_until (YYYY-MM-DD, dilewati setelah tanggal ini), extra (parameter tambahan).
   providers:
     gemini:
       kind: gemini
@@ -76,28 +79,70 @@ llm:
       url: "https://api.groq.com/openai/v1/chat/completions"
       key_env: GROQ_API_KEY
       models: ["openai/gpt-oss-120b", "openai/gpt-oss-20b"]   # llama-3.3-70b-versatile dibuang: Groq menjawab 404
-    cerebras:
+    github:                        # GitHub Models: kunci otomatis dari GITHUB_TOKEN workflow; batas masukan sekitar 8 ribu token
+      kind: openai
+      url: "https://models.github.ai/inference/chat/completions"
+      key_env: GH_MODELS_TOKEN
+      models: ["openai/gpt-4.1-mini", "meta/Llama-3.3-70B-Instruct"]
+      min_interval_seconds: 5
+      max_per_day: 120
+    sambanova:                     # gratis tanpa kartu; sekitar 20 permintaan per hari per model
+      kind: openai
+      url: "https://api.sambanova.ai/v1/chat/completions"
+      key_env: SAMBANOVA_API_KEY
+      models: ["DeepSeek-V3.1", "MiniMax-M2.7"]
+      max_per_day: 36
+    openrouter:                    # tanpa saldo: sekitar 50 permintaan per hari (dibagi semua model gratis)
+      kind: openai
+      url: "https://openrouter.ai/api/v1/chat/completions"
+      key_env: OPENROUTER_API_KEY
+      models: ["openai/gpt-oss-120b:free", "z-ai/glm-4.7-flash:free", "meta-llama/llama-3.3-70b-instruct:free"]
+      max_per_day: 45
+    zai:                           # Z.ai (Zhipu): model Flash gratis, bersamaan terbatas
+      kind: openai
+      url: "https://api.z.ai/api/paas/v4/chat/completions"
+      key_env: ZAI_API_KEY
+      models: ["glm-4.7-flash", "glm-4.5-flash"]
+      extra: {thinking: {type: disabled}}
+      min_interval_seconds: 3
+      max_per_day: 200
+    nvidia:                        # NVIDIA NIM: sekitar 40 permintaan per menit, tetapi memakai kredit awal terbatas
+      kind: openai
+      url: "https://integrate.api.nvidia.com/v1/chat/completions"
+      key_env: NVIDIA_API_KEY
+      models: ["openai/gpt-oss-120b", "meta/llama-3.3-70b-instruct"]
+      credit_based: true
+      min_interval_seconds: 2
+    cloudflare:                    # Workers AI: sekitar 10 ribu neuron per hari gratis; butuh ID akun dan token API
+      kind: openai
+      url: "https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/v1/chat/completions"
+      key_env: CLOUDFLARE_API_TOKEN
+      needs: [CLOUDFLARE_ACCOUNT_ID]
+      models: ["@cf/meta/llama-3.3-70b-instruct-fp8-fast", "@cf/openai/gpt-oss-120b"]
+    cerebras:                      # kredit $5 setelah menambah kartu; kredit kedaluwarsa 30 hari sejak aktivasi
       kind: openai
       url: "https://api.cerebras.ai/v1/chat/completions"
       key_env: CEREBRAS_API_KEY
       models: ["gpt-oss-120b"]
       max_param: max_completion_tokens
-      min_interval_seconds: 13     # batas gratis sekitar 5 permintaan per menit
-    mistral:
+      min_interval_seconds: 13     # batas awal sekitar 5 permintaan per menit
+      credit_based: true
+      # active_until: "2026-12-25" # isi tanggal aktivasi + 30 hari agar bot berhenti memakainya sebelum kredit kedaluwarsa
+    mistral:                       # tingkat gratis dilaporkan berubah; aktif hanya bila kunci diisi
       kind: openai
       url: "https://api.mistral.ai/v1/chat/completions"
       key_env: MISTRAL_API_KEY
       models: ["mistral-small-latest"]
-    openrouter:
+    cohere:                        # kunci uji coba hanya untuk penggunaan non-komersial; dimatikan karena akun ini dimonetisasi
+      enabled: false
       kind: openai
-      url: "https://openrouter.ai/api/v1/chat/completions"
-      key_env: OPENROUTER_API_KEY
-      models: ["openai/gpt-oss-120b:free"]
-      max_per_day: 45              # tanpa saldo, batas gratis sekitar 50 permintaan per hari
+      url: "https://api.cohere.ai/compatibility/v1/chat/completions"
+      key_env: COHERE_API_KEY
+      models: ["command-a-03-2025"]
   # Urutan pakai per tugas. Pemeriksa mendahulukan penyedia yang berbeda dari penulisnya.
   order:
-    write: [gemini, groq, cerebras, mistral, openrouter]
-    check: [groq, cerebras, mistral, gemini, openrouter]
+    write: [gemini, groq, github, sambanova, openrouter, zai, nvidia, cloudflare, cerebras, mistral]
+    check: [cerebras, groq, github, sambanova, cloudflare, openrouter, zai, nvidia, gemini, mistral]
   max_calls_per_run: 40            # batas panggilan AI (menulis + memeriksa) dalam satu run
   max_seconds_per_run: 240         # setelah ini AI tidak dipanggil lagi di run itu (berita tertahan ke run berikutnya)
   check_types: [transfer, injury, manager]       # jenis kejadian yang selalu diperiksa ulang oleh AI
@@ -362,3 +407,22 @@ football:
   refresh_hours: 3             # seberapa sering jadwal diperbarui
   monthly_hour_wib: 7          # jadwal bulanan otomatis tiap tanggal 1 pada jam ini
   lineup_start_minutes: 90     # mulai mengecek lineup sekian menit sebelum kick-off
+
+# Pemantauan YouTube (butuh YOUTUBE_API_KEY): wawancara, konferensi pers, dan siaran langsung pemain atau petinggi Man Utd.
+# Kanal dicari lewat handle, lalu lewat nama bila handle salah (hasilnya tampil di /diagnosa). official: true = semua
+# videonya soal Man Utd, cukup memuat kata wawancara di judul. search_upcoming: true = ikut mencari siaran terjadwal
+# (memakai jatah pencarian harian). Tambah atau hapus kanal cukup dengan mengedit daftar ini.
+youtube:
+  poll_minutes: 10
+  search_every_minutes: 60
+  max_search_per_day: 80
+  remind_minutes: 30             # pengingat sebelum siaran terjadwal mulai
+  max_age_hours: 24              # unggahan lebih tua dari ini tidak diumumkan
+  channels:
+    - {name: "Manchester United", handle: "@manutd", official: true, search_upcoming: true}
+    - {name: "Sky Sports Football", handle: "@SkySportsFootball", search_upcoming: true}
+    - {name: "Sky Sports Premier League", handle: "@SkySportsPL", search_upcoming: true}
+    - {name: "Premier League", handle: "@premierleague"}
+    - {name: "UEFA", handle: "@uefa"}
+    - {name: "TNT Sports", handle: "@tntsports"}
+    - {name: "talkSPORT", handle: "@talkSPORT"}
