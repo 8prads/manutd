@@ -352,7 +352,7 @@ def call_gemini(models, key, prompt, log, finish=None):
         try:
             r = None
             for thinking in (True, False):  # kurangi waktu berpikir; ulangi tanpa itu jika parameter ditolak
-                gc = {"temperature": 0.2, "maxOutputTokens": 2000}
+                gc = {"temperature": 0.2, "maxOutputTokens": 3000}
                 if thinking:
                     gc["thinkingConfig"] = {"thinkingLevel": "low"}
                 r = _post(f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent",
@@ -386,7 +386,7 @@ def call_openai_compat(url, models, key, prompt, log, finish=None, tag="groq", m
         if _blocked(k):
             continue
         try:
-            payload = {"model": m, "messages": [{"role": "user", "content": prompt}], "temperature": 0.2, max_param: 1500, **(extra or {})}
+            payload = {"model": m, "messages": [{"role": "user", "content": prompt}], "temperature": 0.2, max_param: 2500, **(extra or {})}
             r = _post(url, {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}, payload, read=45)
             if r.status_code == 200:
                 out = fin(r.json()["choices"][0]["message"].get("content") or "")
