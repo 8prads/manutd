@@ -24,9 +24,10 @@ HELP = (
     "/daftar - seluruh nama pemain, staf, jurnalis, dan pundit yang dikenali bot\n"
     "/dibuang - 10 berita terakhir yang dibuang beserta alasannya\n"
     "/ai - status tiap penyedia AI; /ai tutup cerebras 30; /ai buka cerebras (atau semua)\n"
-    "/opini - balas (quote) sebuah berita lalu kirim /opini untuk draf opini berpov Anda; "
-    "tambahkan arah atau panjang bila perlu, mis. /opini singkat Carrick perlu diberi waktu "
-    "(pilihan panjang: singkat, panjang, atau 3 kalimat)\n"
+    "/opini - balas (quote) sebuah berita lalu kirim /opini untuk komentar singkat (maksimal 300 karakter) "
+    "ala fans Man Utd sepuh; tambahkan arah bila perlu, mis. /opini Carrick perlu diberi waktu\n"
+    "/ask - balas (quote) sebuah berita lalu tanyakan apa saja soal berita itu, jawaban dua bahasa, "
+    "mis. /ask siapa saja 13 pemain itu? (alias /tanya)\n"
     "/pengingat - lihat atau ubah tanggal pengingat\n\n"
     "Perintah dibaca setiap siklus (sekitar 5 menit)."
 )
@@ -261,7 +262,7 @@ def reply_for(cmd, args, state, cfg, now):
 
 
 def handle(tg, state, cfg, chat_id, log=print):
-    """Proses perintah masuk. Kembalikan daftar pekerjaan /opini untuk diproses main."""
+    """Proses perintah masuk. Kembalikan daftar pekerjaan /opini dan /ask (berisi 'kind') untuk diproses main."""
     jobs = []
     for u in tg.updates(state["tg_offset"]):
         state["tg_offset"] = u["update_id"] + 1
@@ -273,14 +274,21 @@ def handle(tg, state, cfg, chat_id, log=print):
             continue
         cmd, _, notes = text.partition(" ")
         c, mid = cmd.split("@")[0].lower(), m.get("message_id")
-        if c == "/opini":
+        if c in ("/opini", "/ask", "/tanya"):
+            kind = "opini" if c == "/opini" else "ask"
             q = m.get("reply_to_message")
             if not q or not (q.get("text") or q.get("caption")):
-                tg.send("Balas (quote) pesan berita yang ingin dibuatkan opini, lalu kirim /opini. "
-                        "Tambahkan arah opini bila perlu, misalnya: /opini Carrick perlu diberi waktu.", reply_to=mid)
+                if kind == "opini":
+                    tg.send("Balas (quote) pesan berita yang ingin dibuatkan opini, lalu kirim /opini. "
+                            "Tambahkan arah opini bila perlu, misalnya: /opini Carrick perlu diberi waktu.", reply_to=mid)
+                else:
+                    tg.send("Balas (quote) pesan berita yang ingin ditanyakan, lalu kirim /ask diikuti pertanyaan. "
+                            "Contoh: /ask siapa saja 13 pemain itu?", reply_to=mid)
+            elif kind == "ask" and not notes.strip():
+                tg.send("Tulis pertanyaannya setelah /ask, misalnya: /ask siapa saja 13 pemain itu?", reply_to=mid)
             else:
-                jobs.append({"cmd_id": mid, "quoted": q, "notes": notes.strip()})
-                log("perintah /opini")
+                jobs.append({"cmd_id": mid, "quoted": q, "notes": notes.strip(), "kind": kind})
+                log(f"perintah {c}")
             continue
         resp = reply_for(c, notes.split(), state, cfg, time.time())
         if resp:
