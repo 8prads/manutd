@@ -91,13 +91,13 @@ llm:
       kind: openai
       url: "https://api.sambanova.ai/v1/chat/completions"
       key_env: SAMBANOVA_API_KEY
-      models: ["DeepSeek-V3.1", "MiniMax-M2.7"]
+      models: ["gpt-oss-120b", "gemma-4-31B-it", "GLM-5.3", "MiniMax-M3.1-Flash"]   # berurutan: yang dicabut dilewati otomatis, lanjut ke berikutnya
       max_per_day: 36
     openrouter:                    # tanpa saldo: sekitar 50 permintaan per hari (dibagi semua model gratis)
       kind: openai
       url: "https://openrouter.ai/api/v1/chat/completions"
       key_env: OPENROUTER_API_KEY
-      models: ["openai/gpt-oss-120b:free", "z-ai/glm-4.7-flash:free", "meta-llama/llama-3.3-70b-instruct:free"]
+      models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-ultra-550b-a55b:free", "openrouter/free"]   # openrouter/free = router otomatis, taruh terakhir
       max_per_day: 45
     zai:                           # Z.ai (Zhipu): model Flash gratis, bersamaan terbatas
       kind: openai
@@ -111,7 +111,7 @@ llm:
       kind: openai
       url: "https://integrate.api.nvidia.com/v1/chat/completions"
       key_env: NVIDIA_API_KEY
-      models: ["openai/gpt-oss-120b", "meta/llama-3.3-70b-instruct"]
+      models: ["mistralai/mistral-large-4-1t-a52b", "nvidia/nemotron-3.5-lightning-30b-a3b", "minimaxai/minimax-m3.1-flash", "moonshotai/kimi-k3.1-pro"]   # berurutan; gpt-oss dan Llama sudah dicabut (410)
       credit_based: true
       min_interval_seconds: 2
     cloudflare:                    # Workers AI: sekitar 10 ribu neuron per hari gratis; butuh ID akun dan token API
