@@ -135,7 +135,7 @@ llm:
       key_env: MISTRAL_API_KEY
       models: ["mistral-small-latest"]
     cohere:                        # kunci uji coba hanya untuk penggunaan non-komersial; dimatikan karena akun ini dimonetisasi
-      enabled: false
+      enabled: true
       kind: openai
       url: "https://api.cohere.ai/compatibility/v1/chat/completions"
       key_env: COHERE_API_KEY
