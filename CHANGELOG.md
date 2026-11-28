@@ -7,6 +7,7 @@ Setiap versi mencantumkan file yang berubah, supaya mudah menimpa file yang tepa
 - Isi: kembali merangkum seluruh isi berita, maksimal 5 kalimat (`summary.max_sentences`) dan 1024 karakter per bahasa (`summary.body_max_chars`, sebelumnya 300), memuat poin utama berita dan menjawab hal yang dipancing headline. Batas kalimat dan karakter dijaga kode (`draft.clip`); format kutipan wawancara ikut batas karakter yang sama.
 - Pemisah bahasa: garis kini selalu berdiri sendiri dengan baris kosong di atas dan bawahnya.
 - Penyedia AI: respons HTTP 410 (model sudah dicabut penyedia) kini dilewati 24 jam seperti 404, sehingga model mati tidak dicoba ulang tiap run.
+- Batas token keluaran dinaikkan (penyedia OpenAI-compat 1500 ke 2500, Gemini 2000 ke 3000) karena isi dua bahasa kini lebih panjang dan model penalaran memakai sebagian token untuk berpikir.
 - File: `bot/llm.py`, `bot/draft.py`, `bot/text.py`, `config/settings.yaml`, `README.md`, `docs/PANDUAN.md`, `tests/test_v112.py`, `tests/test_v118.py`, `tests/test_v120.py` (baru), `CHANGELOG.md`.
 
 ## v1.19 - Pemantauan YouTube, penyedia AI gratis lengkap, kredit Cerebras
