@@ -2,6 +2,12 @@
 
 Setiap versi mencantumkan file yang berubah, supaya mudah menimpa file yang tepat di repo.
 
+## v1.21 - Perintah /ask, /opini ala fans sepuh
+- Perintah baru `/ask <pertanyaan>` (alias `/tanya`): balas (quote) sebuah berita lalu tanyakan apa saja. Bot menjawab dalam dua bahasa (label [JAWABAN], maksimal 900 karakter per bahasa, dengan garis pemisah, tautan, dan sumber) hanya dari isi artikel yang tersimpan; bila tidak disebut di artikel, bot mengatakannya dan tidak menebak. Aturan headline dan isi berita tidak berubah.
+- `/opini` kini berperan sebagai fans Man Utd sepuh yang paham bola: bahasa lisan santai, tanpa frasa kaku khas AI, maksimal 300 karakter (dijaga kode, `draft.clip`). Kata kunci panjang (`singkat`, `panjang`, `N kalimat`) dihapus karena panjangnya kini tetap.
+- `commands.handle` mengirim pekerjaan dengan kunci `kind` ("opini" atau "ask"); `opini.process` membagikannya.
+- File: `bot/opini.py`, `bot/commands.py`, `README.md`, `docs/PANDUAN.md`, `tests/test_v17.py`, `tests/test_v121.py` (baru), `CHANGELOG.md`.
+
 ## v1.20 - Headline pemancing penasaran, isi kembali 5 kalimat
 - Headline: tetap satu kalimat formal, tetapi disusun memancing rasa penasaran (subjek dan pokok peristiwa disebut, satu detail penting disisakan untuk isi). Dilarang berupa kalimat tanya, memakai tanda seru, huruf kapital berlebihan, tiga titik, atau kata dramatis; tidak boleh terdengar lebih pasti daripada isi berita (rumor tetap terbaca rumor). Pemeriksa AI kini juga menandai headline yang menyesatkan.
 - Isi: kembali merangkum seluruh isi berita, maksimal 5 kalimat (`summary.max_sentences`) dan 1024 karakter per bahasa (`summary.body_max_chars`, sebelumnya 300), memuat poin utama berita dan menjawab hal yang dipancing headline. Batas kalimat dan karakter dijaga kode (`draft.clip`); format kutipan wawancara ikut batas karakter yang sama.
