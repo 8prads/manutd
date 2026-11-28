@@ -56,7 +56,7 @@ Jadwal cadangan dari GitHub (tiap 15 menit) sudah ada di workflow dan aman berja
 
 ## D. Perintah Telegram
 
-`/status` · `/pause` · `/resume` · `/cooldown 15` · `/batas 10` · `/sumber` · `/terakhir` · `/menunggu` · `/dibuang` · `/daftar` · `/jurnalis` · `/ai` · `/pengingat` · `/opini` · `/bantuan`
+`/status` · `/pause` · `/resume` · `/cooldown 15` · `/batas 10` · `/sumber` · `/terakhir` · `/menunggu` · `/dibuang` · `/daftar` · `/jurnalis` · `/ai` · `/pengingat` · `/opini` · `/ask` · `/bantuan`
 
 **Kata kunci nama:** `/nama` menampilkan daftar pemain dan staf yang dikenali bot. `/nama tambah Hojlund` menambah nama (mis. pembelian baru), `/nama hapus Rashford` mengeluarkan nama yang sudah pergi, `/nama reset` membatalkan semua perubahan lewat Telegram. Perubahan tersimpan dan berlaku mulai siklus berikutnya; daftar bawaan ada di `mu_names` pada `config/settings.yaml`.
 
@@ -74,7 +74,9 @@ Jadwal cadangan dari GitHub (tiap 15 menit) sudah ada di workflow dan aman berja
 
 **Data dan filter:** `/jadwal` (30 hari ke depan, `/jadwal 14` untuk 14 hari; jam ditampilkan dalam WIB dan waktu Inggris GMT/BST), `/klasemen pl|ucl|uel|laliga|seriea|bundesliga|ligue1`, `/statistik` (pertandingan terakhir), `/diagnosa`. Blokir kata: `/blokir bruno contract` (permanen), `/blokir 120 bruno contract` (30-360 menit), `/buka bruno contract`, `/daftarblokir`. Berita [RESMI] tidak pernah diblokir.
 
-**Draf opini:** di Telegram, tekan lama sebuah berita dari bot lalu pilih Reply, ketik `/opini` (boleh ditambah arah opini, misalnya `/opini Carrick perlu diberi waktu`). Atur panjang dengan kata kunci: `singkat` (2-3 kalimat), `3 kalimat`, atau `panjang`; tanpa kata kunci hasilnya 1-2 paragraf pendek, lalu kirim. Dalam satu siklus bot membalas dengan draf opini berpov Anda, mengutip perintah Anda.
+**Opini:** di Telegram, tekan lama sebuah berita dari bot lalu pilih Reply, ketik `/opini` (boleh ditambah arah, misalnya `/opini Carrick perlu diberi waktu`). Bot menjawab dengan komentar santai ala fans Man Utd sepuh, maksimal 300 karakter (dijaga kode), dalam satu siklus (sekitar 5 menit), mengutip perintah Anda.
+
+**Tanya jawab:** balas (quote) sebuah berita lalu kirim `/ask <pertanyaan>` atau `/tanya <pertanyaan>`, misalnya `/ask siapa saja 13 pemain itu?`. Jawaban dua bahasa (maksimal 900 karakter per bahasa) disusun hanya dari isi artikel yang tersimpan di bot (sampai 48 jam setelah dikirim); bila artikel berbayar atau tidak terbaca, bot hanya memakai ringkasannya dan mengatakannya. Bot tidak mencari di internet. Bila pesan yang dikutip bukan berita dari bot, jawaban memakai teks pesan itu saja.
 
 **Pengingat token:** bot mengirim pengingat 3 hari sebelum token kedaluwarsa (default 10 November 2027, jam 09:00 WIB). Setelah memperbarui token, atur tanggal baru dengan `/pengingat token_github 2028-11-10`, atau ubah `kedaluwarsa` di `config/settings.yaml`.
 
